@@ -1,16 +1,30 @@
 <%- include('../partials/head') %>
-  <h1>Checkout</h1>
-  <ul class="cart-list">
-    <% lines.forEach(l => { %>
-      <li>
-        <span><%= l.product.title %> &times; <%= l.qty %></span>
-        <span class="price">$<%= (l.product.price * l.qty).toFixed(2) %></span>
-      </li>
-    <% }) %>
-  </ul>
-  <p class="price">Total: $<%= total.toFixed(2) %></p>
-  <form method="POST" action="/checkout" class="inline">
-    <button>Place Order</button>
-  </form>
-  <a href="/cart">Back to cart</a>
+  <h1 class="md-title">Checkout</h1>
+  <div class="cart-container">
+    <div class="cart-items-list">
+      <% lines.forEach(l => { %>
+        <div class="cart-item">
+          <% if (l.product.imageUrl) { %>
+            <img class="cart-item__image" src="<%= l.product.imageUrl %>" alt="" onerror="this.style.visibility='hidden'">
+          <% } else { %>
+            <div class="cart-item__image"></div>
+          <% } %>
+          <div class="cart-item__details">
+            <span class="cart-item__title"><%= l.product.title %></span>
+            <span class="cart-item__price">$<%= l.product.price.toFixed(2) %> &times; <%= l.qty %></span>
+          </div>
+          <span class="cart-item__total">$<%= (l.product.price * l.qty).toFixed(2) %></span>
+        </div>
+      <% }) %>
+    </div>
+    <aside class="cart-summary">
+      <h2 class="cart-summary__title">Order Summary</h2>
+      <div class="cart-summary__row"><span>Items</span><span><%= lines.reduce((n, l) => n + l.qty, 0) %></span></div>
+      <div class="cart-summary__row cart-summary__total"><span>Total</span><span>$<%= total.toFixed(2) %></span></div>
+      <form method="POST" action="/checkout">
+        <button class="md-button-filled">Place Order</button>
+      </form>
+      <a class="md-button-outlined" href="/cart">Back to cart</a>
+    </aside>
+  </div>
 <%- include('../partials/foot') %>

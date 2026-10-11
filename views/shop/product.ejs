@@ -1,20 +1,22 @@
 <%- include('../partials/head') %>
-  <a class="back" href="/">&larr; Back to shop</a>
-  <div class="product-detail">
-    <div class="product-image">
-      <% if (product.imageUrl) { %>
-        <img src="<%= product.imageUrl %>" alt="<%= product.title %>" onerror="this.remove()">
-      <% } %>
+  <div class="back-link"><a class="md-button-text" href="/">&larr; Back to shop</a></div>
+  <article class="md-card detail-card">
+    <% if (product.imageUrl) { %>
+      <img class="md-card__media" src="<%= product.imageUrl %>" alt="<%= product.title %>" onerror="this.style.visibility='hidden'">
+    <% } else { %>
+      <div class="md-card__media"></div>
+    <% } %>
+    <div class="md-card__content">
+      <h1><%= product.title %></h1>
+      <p class="md-card__price">$<%= product.price.toFixed(2) %></p>
+      <dl class="meta">
+        <dt>Product ID</dt><dd><%= product.id %></dd>
+        <dt>Image URL</dt><dd><%= product.imageUrl || '—' %></dd>
+      </dl>
+      <form class="md-card__actions" method="POST" action="/cart">
+        <input type="hidden" name="productId" value="<%= product.id %>">
+        <button class="md-button-filled">Add to Cart</button>
+      </form>
     </div>
-    <h1><%= product.title %></h1>
-    <p class="price">$<%= product.price.toFixed(2) %></p>
-    <dl class="meta">
-      <dt>Product ID</dt><dd><%= product.id %></dd>
-      <dt>Image URL</dt><dd><%= product.imageUrl || '—' %></dd>
-    </dl>
-    <form method="POST" action="/cart">
-      <input type="hidden" name="productId" value="<%= product.id %>">
-      <button>Add to Cart</button>
-    </form>
-  </div>
+  </article>
 <%- include('../partials/foot') %>

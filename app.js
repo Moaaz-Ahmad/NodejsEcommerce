@@ -2,6 +2,7 @@ const express = require('express');
 const session = require('express-session');
 const crypto = require('crypto');
 const path = require('path');
+const Cart = require('./models/cart');
 
 const app = express();
 
@@ -16,8 +17,10 @@ app.use(session({
   saveUninitialized: false,
   cookie: { httpOnly: true, sameSite: 'lax' },
 }));
-app.use((req, res, next) => {
-  res.locals.user = req.session.user || null;
+app.use(async (req, res, next) => {
+  const user = req.session.user || null;
+  res.locals.user = user;
+  res.locals.cartCount = user ? (await Cart.get(user.username)).reduce((n, i) => n + i.qty, 0) : 0;
   next();
 });
 

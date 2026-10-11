@@ -1,21 +1,40 @@
 <%- include('../partials/head') %>
-  <h1>Cart</h1>
+  <h1 class="md-title">Cart</h1>
   <% if (lines.length) { %>
-    <ul class="cart-list">
-      <% lines.forEach(l => { %>
-        <li>
-          <span><%= l.product.title %> &times; <%= l.qty %></span>
-          <span class="price">$<%= (l.product.price * l.qty).toFixed(2) %></span>
-          <form method="POST" action="/cart/delete" class="inline">
-            <input type="hidden" name="productId" value="<%= l.product.id %>">
-            <button class="danger">Delete</button>
-          </form>
-        </li>
-      <% }) %>
-    </ul>
-    <p class="price">Total: $<%= total.toFixed(2) %></p>
-    <a class="btn" href="/checkout">Checkout</a>
+    <div class="cart-container">
+      <div class="cart-items-list">
+        <% lines.forEach(l => { %>
+          <div class="cart-item">
+            <% if (l.product.imageUrl) { %>
+              <img class="cart-item__image" src="<%= l.product.imageUrl %>" alt="" onerror="this.style.visibility='hidden'">
+            <% } else { %>
+              <div class="cart-item__image"></div>
+            <% } %>
+            <div class="cart-item__details">
+              <a class="cart-item__title" href="/products/<%= l.product.id %>"><%= l.product.title %></a>
+              <span class="cart-item__price">$<%= l.product.price.toFixed(2) %> &times; <%= l.qty %></span>
+            </div>
+            <span class="cart-item__total">$<%= (l.product.price * l.qty).toFixed(2) %></span>
+            <form class="md-inline-form" method="POST" action="/cart/delete">
+              <input type="hidden" name="productId" value="<%= l.product.id %>">
+              <button class="md-icon-button" title="Remove" aria-label="Remove <%= l.product.title %>">
+                <span class="material-symbols-outlined">delete</span>
+              </button>
+            </form>
+          </div>
+        <% }) %>
+      </div>
+      <aside class="cart-summary">
+        <h2 class="cart-summary__title">Order Summary</h2>
+        <div class="cart-summary__row"><span>Items</span><span><%= lines.reduce((n, l) => n + l.qty, 0) %></span></div>
+        <div class="cart-summary__row cart-summary__total"><span>Total</span><span>$<%= total.toFixed(2) %></span></div>
+        <a class="md-button-filled" href="/checkout">Checkout</a>
+      </aside>
+    </div>
   <% } else { %>
-    <p class="empty">Your cart is empty.</p>
+    <div class="empty-state">
+      <h1>Your cart is empty</h1>
+      <a class="md-button-filled" href="/">Browse the shop</a>
+    </div>
   <% } %>
 <%- include('../partials/foot') %>

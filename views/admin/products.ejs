@@ -1,23 +1,30 @@
 <%- include('../partials/head') %>
-  <h1>Manage Products</h1>
-  <a class="btn" href="/admin/add-product">Add Product</a>
+  <h1 class="md-title">Manage Products</h1>
+  <p><a class="md-button-filled" href="/admin/add-product">Add Product</a></p>
   <% if (products.length) { %>
-    <ul class="cart-list">
+    <div class="cart-items-list" style="margin-top:16px">
       <% products.forEach(p => { %>
-        <li>
-          <span><%= p.title %></span>
-          <span class="price">$<%= p.price.toFixed(2) %></span>
-          <span>
-            <a href="/admin/edit-product/<%= p.id %>">Edit</a>
-            <form method="POST" action="/admin/delete-product/<%= p.id %>" class="inline"
+        <div class="cart-item">
+          <% if (p.imageUrl) { %>
+            <img class="cart-item__image" src="<%= p.imageUrl %>" alt="" onerror="this.style.visibility='hidden'">
+          <% } else { %>
+            <div class="cart-item__image"></div>
+          <% } %>
+          <div class="cart-item__details">
+            <span class="cart-item__title"><%= p.title %></span>
+            <span class="cart-item__price">$<%= p.price.toFixed(2) %></span>
+          </div>
+          <div class="cart-item__actions">
+            <a class="md-button-outlined" href="/admin/edit-product/<%= p.id %>">Edit</a>
+            <form class="md-inline-form" method="POST" action="/admin/delete-product/<%= p.id %>"
                   onsubmit="return confirm('Delete this product?')">
-              <button class="danger">Delete</button>
+              <button class="md-button-danger">Delete</button>
             </form>
-          </span>
-        </li>
+          </div>
+        </div>
       <% }) %>
-    </ul>
+    </div>
   <% } else { %>
-    <p class="empty">No products yet.</p>
+    <div class="empty-state"><h1>No products yet</h1></div>
   <% } %>
 <%- include('../partials/foot') %>

@@ -1,20 +1,23 @@
 <%- include('../partials/head') %>
-  <h1>Profile</h1>
-  <p><strong><%= user.username %></strong> &middot; <%= user.role %></p>
-  <h2>Order history</h2>
+  <h1 class="md-title">Profile</h1>
+  <div class="profile-card">
+    <strong><%= user.username %></strong>
+    <span><%= user.role %></span>
+  </div>
+  <h2 class="md-subtitle">Order history</h2>
   <% if (orders.length) { %>
     <% orders.forEach(o => { %>
-      <div class="order">
-        <p class="muted"><%= new Date(o.placedAt).toLocaleString() %></p>
+      <section class="order-card">
+        <p class="md-muted"><%= new Date(o.placedAt).toLocaleString() %></p>
         <ul>
           <% o.items.forEach(i => { %>
             <li><%= i.title %> &times; <%= i.qty %> &mdash; $<%= (i.price * i.qty).toFixed(2) %></li>
           <% }) %>
         </ul>
-        <p class="price">Total: $<%= o.total.toFixed(2) %></p>
-      </div>
+        <strong class="md-card__price">Total: $<%= o.total.toFixed(2) %></strong>
+      </section>
     <% }) %>
   <% } else { %>
-    <p class="empty">No orders yet.</p>
+    <p class="md-muted">No orders yet.</p>
   <% } %>
 <%- include('../partials/foot') %>

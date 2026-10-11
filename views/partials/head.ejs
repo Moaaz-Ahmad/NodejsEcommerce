@@ -4,22 +4,40 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><%= title %></title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined">
   <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/header.css">
+  <link rel="stylesheet" href="/css/footer.css">
+  <link rel="stylesheet" href="/css/cart.css">
+  <link rel="stylesheet" href="/css/pages.css">
 </head>
 <body>
-  <nav>
-    <% if (user) { %>
-      <a href="/">Shop</a>
-      <a href="/cart">Cart</a>
-      <% if (user.role === 'admin') { %>
-        <a href="/admin/products">Manage Products</a>
-        <a href="/admin/add-product">Add Product</a>
+  <header class="md-header">
+    <a class="md-header__brand" href="/"><span class="material-symbols-outlined">storefront</span>SimpleCom</a>
+    <div class="md-header__actions">
+      <% if (user) { %>
+        <% if (user.role === 'admin') { %>
+          <a class="md-button-text" href="/admin/products">Manage Products</a>
+          <a class="md-button-text" href="/admin/add-product">Add Product</a>
+        <% } %>
+        <a class="md-icon-button" href="/cart" title="Cart" aria-label="Cart">
+          <span class="material-symbols-outlined">shopping_cart</span>
+          <% if (cartCount) { %><span class="md-badge"><%= cartCount %></span><% } %>
+        </a>
+        <a class="md-icon-button" href="/profile" title="Profile" aria-label="Profile">
+          <span class="material-symbols-outlined">person</span>
+        </a>
+        <span class="md-header__user"><%= user.username %> (<%= user.role %>)</span>
+        <form class="md-inline-form" method="POST" action="/logout">
+          <button class="md-icon-button" title="Logout" aria-label="Logout">
+            <span class="material-symbols-outlined">logout</span>
+          </button>
+        </form>
+      <% } else { %>
+        <a class="md-button-text" href="/login">Login</a>
       <% } %>
-      <span class="spacer"></span>
-      <a href="/profile"><%= user.username %> (<%= user.role %>)</a>
-      <form method="POST" action="/logout" class="inline"><button class="link">Logout</button></form>
-    <% } else { %>
-      <a href="/login">Login</a>
-    <% } %>
-  </nav>
-  <main>
+    </div>
+  </header>
+  <main class="main-container">

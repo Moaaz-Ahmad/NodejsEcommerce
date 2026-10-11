@@ -1,9 +1,15 @@
 <%- include('../partials/head') %>
-  <h1>Login</h1>
-  <% if (error) { %><p class="error"><%= error %></p><% } %>
-  <form method="POST" action="/login">
-    <input name="username" placeholder="Username (admin or user)" required autofocus>
-    <input name="password" type="password" placeholder="Password" required>
-    <button>Login</button>
+  <% if (error) { %><p class="md-alert" role="alert"><%= error %></p><% } %>
+  <form class="md-form" method="POST" action="/login">
+    <h1 class="md-title">Login</h1>
+    <div class="md-field">
+      <label for="username">Username (admin or user)</label>
+      <input id="username" name="username" required autofocus>
+    </div>
+    <div class="md-field">
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" required>
+    </div>
+    <button class="md-button-filled">Login</button>
   </form>
 <%- include('../partials/foot') %>
