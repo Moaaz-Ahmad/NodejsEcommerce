@@ -1,0 +1,20 @@
+<%- include('../partials/head') %>
+  <h1>Profile</h1>
+  <p><strong><%= user.username %></strong> &middot; <%= user.role %></p>
+  <h2>Order history</h2>
+  <% if (orders.length) { %>
+    <% orders.forEach(o => { %>
+      <div class="order">
+        <p class="muted"><%= new Date(o.placedAt).toLocaleString() %></p>
+        <ul>
+          <% o.items.forEach(i => { %>
+            <li><%= i.title %> &times; <%= i.qty %> &mdash; $<%= (i.price * i.qty).toFixed(2) %></li>
+          <% }) %>
+        </ul>
+        <p class="price">Total: $<%= o.total.toFixed(2) %></p>
+      </div>
+    <% }) %>
+  <% } else { %>
+    <p class="empty">No orders yet.</p>
+  <% } %>
+<%- include('../partials/foot') %>

@@ -1,0 +1,38 @@
+const express = require('express');
+const session = require('express-session');
+const crypto = require('crypto');
+const path = require('path');
+
+const app = express();
+
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+app.use(express.static(path.join(__dirname, 'Public')));
+app.use(express.urlencoded({ extended: false }));
+// ponytail: in-memory sessions, so logins reset on restart; use a persistent store + fixed SESSION_SECRET in production
+app.use(session({
+  secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
+  resave: false,
+  saveUninitialized: false,
+  cookie: { httpOnly: true, sameSite: 'lax' },
+}));
+app.use((req, res, next) => {
+  res.locals.user = req.session.user || null;
+  next();
+});
+
+app.use(require('./routes/auth'));
+app.use('/admin', require('./routes/admin'));
+app.use(require('./routes/shop'));
+
+app.use((req, res) => {
+  res.status(404).render('error', { title: 'Not Found', message: 'Page not found.' });
+});
+
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(500).render('error', { title: 'Error', message: 'Something went wrong. Please try again.' });
+});
+
+app.listen(3000, () => console.log('http://localhost:3000'));

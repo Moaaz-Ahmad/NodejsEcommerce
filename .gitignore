@@ -1,0 +1,4 @@
+node_modules/
+Data/carts.json
+Data/orders.json
+Data/*.tmp

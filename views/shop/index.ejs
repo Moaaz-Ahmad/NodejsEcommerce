@@ -1,0 +1,27 @@
+<%- include('../partials/head') %>
+  <h1>Shop</h1>
+  <% if (products.length) { %>
+    <ul class="product-list">
+      <% products.forEach(p => { %>
+        <li class="product-card">
+          <div class="product-image">
+            <% if (p.imageUrl) { %>
+              <img src="<%= p.imageUrl %>" alt="<%= p.title %>" loading="lazy" onerror="this.remove()">
+            <% } %>
+          </div>
+          <div class="product-info">
+            <h2><%= p.title %></h2>
+            <p class="price">$<%= p.price.toFixed(2) %></p>
+            <a class="btn" href="/products/<%= p.id %>">Details</a>
+            <form method="POST" action="/cart">
+              <input type="hidden" name="productId" value="<%= p.id %>">
+              <button>Add to Cart</button>
+            </form>
+          </div>
+        </li>
+      <% }) %>
+    </ul>
+  <% } else { %>
+    <p class="empty">No products yet.</p>
+  <% } %>
+<%- include('../partials/foot') %>

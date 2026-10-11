@@ -1,0 +1,21 @@
+<%- include('../partials/head') %>
+  <h1>Cart</h1>
+  <% if (lines.length) { %>
+    <ul class="cart-list">
+      <% lines.forEach(l => { %>
+        <li>
+          <span><%= l.product.title %> &times; <%= l.qty %></span>
+          <span class="price">$<%= (l.product.price * l.qty).toFixed(2) %></span>
+          <form method="POST" action="/cart/delete" class="inline">
+            <input type="hidden" name="productId" value="<%= l.product.id %>">
+            <button class="danger">Delete</button>
+          </form>
+        </li>
+      <% }) %>
+    </ul>
+    <p class="price">Total: $<%= total.toFixed(2) %></p>
+    <a class="btn" href="/checkout">Checkout</a>
+  <% } else { %>
+    <p class="empty">Your cart is empty.</p>
+  <% } %>
+<%- include('../partials/foot') %>
