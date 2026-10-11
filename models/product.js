@@ -10,17 +10,31 @@ exports.all = async () => {
 
 exports.find = async (id) => (await exports.all()).find((p) => p.id === id);
 
-exports.add = ({ title, price, imageUrl }) =>
-  store.update((list) => { list.push({ id: crypto.randomUUID(), title, price, imageUrl }); });
+const same = (a, b) => a.trim().toLowerCase() === b.trim().toLowerCase();
 
-// returns false when the product no longer exists
+// product name is the unique key (case-insensitive): an existing name is updated instead of duplicated
+// returns true if a new product was created, false if an existing one was updated
+exports.upsert = async ({ title, price, imageUrl }) => {
+  let created = false;
+  await store.update((list) => {
+    const p = list.find((x) => same(x.title, title));
+    if (p) Object.assign(p, { title, price, imageUrl });
+    else { list.push({ id: crypto.randomUUID(), title, price, imageUrl }); created = true; }
+  });
+  return created;
+};
+
+// returns 'ok' | 'missing' | 'duplicate' (another product already uses that name)
 exports.update = async (id, { title, price, imageUrl }) => {
-  let found = false;
+  let result = 'missing';
   await store.update((list) => {
     const p = list.find((x) => x.id === id);
-    if (p) { Object.assign(p, { title, price, imageUrl }); found = true; }
+    if (!p) return;
+    if (list.some((x) => x.id !== id && same(x.title, title))) { result = 'duplicate'; return; }
+    Object.assign(p, { title, price, imageUrl });
+    result = 'ok';
   });
-  return found;
+  return result;
 };
 
 exports.remove = (id) => store.update((list) => list.filter((p) => p.id !== id));

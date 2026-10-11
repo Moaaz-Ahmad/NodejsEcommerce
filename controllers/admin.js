@@ -1,4 +1,5 @@
 const Product = require('../models/product');
+const Cart = require('../models/cart');
 
 // returns { data } or { error }
 function parse(body) {
@@ -23,7 +24,10 @@ exports.getAddProduct = (req, res) => {
 exports.postAddProduct = async (req, res) => {
   const { data, error } = parse(req.body);
   if (error) return res.status(400).render('admin/edit-product', { title: 'Add Product', product: req.body, error });
-  await Product.add(data);
+  const created = await Product.upsert(data);
+  req.session.flash = created
+    ? `"${data.title}" added.`
+    : `"${data.title}" already exists, so the existing product was updated.`;
   res.redirect('/admin/products');
 };
 
@@ -40,11 +44,20 @@ exports.postEditProduct = async (req, res) => {
       title: 'Edit Product', product: { ...req.body, id: req.params.id }, error,
     });
   }
-  if (!(await Product.update(req.params.id, data))) return notFound(res);
+  const result = await Product.update(req.params.id, data);
+  if (result === 'missing') return notFound(res);
+  if (result === 'duplicate') {
+    return res.status(400).render('admin/edit-product', {
+      title: 'Edit Product', product: { ...req.body, id: req.params.id },
+      error: 'Another product already has that name.',
+    });
+  }
+  req.session.flash = `"${data.title}" updated.`;
   res.redirect('/admin/products');
 };
 
 exports.postDeleteProduct = async (req, res) => {
   await Product.remove(req.params.id);
+  await Cart.removeEverywhere(req.params.id);
   res.redirect('/admin/products');
 };

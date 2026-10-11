@@ -86,3 +86,16 @@ img.md-card__media { display: block; }
 @media (max-width: 600px) { .cart-item { flex-wrap: wrap; } }
 a.cart-item__title { color: inherit; text-decoration: none; }
 a.cart-item__title:hover { color: var(--md-sys-color-primary); }
+
+/* Toast / snackbar: shows, then fades out on its own */
+.md-snackbar {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 2000;
+  max-width: calc(100vw - 32px); padding: 14px 24px; border-radius: var(--md-shape-corner-small);
+  background-color: #322F35; color: #F5EFF7; font-size: 0.875rem; box-shadow: var(--md-sys-elevation-3);
+  animation: md-snackbar 5s ease-in-out forwards;
+}
+@keyframes md-snackbar {
+  0% { opacity: 0; transform: translate(-50%, 16px); }
+  8%, 88% { opacity: 1; transform: translate(-50%, 0); }
+  100% { opacity: 0; transform: translate(-50%, 0); visibility: hidden; }
+}

@@ -17,3 +17,16 @@ exports.remove = (username, productId) =>
   });
 
 exports.clear = (username) => store.update((carts) => { delete carts[username]; });
+
+// drops a deleted product from every user's cart
+exports.removeEverywhere = (productId) =>
+  store.update((carts) => {
+    for (const user of Object.keys(carts)) carts[user] = carts[user].filter((i) => i.productId !== productId);
+  });
+
+// badge count: only entries whose product still exists (covers carts saved before cascade delete)
+exports.count = async (username) => {
+  const [items, products] = await Promise.all([exports.get(username), require('./product').all()]);
+  const ids = new Set(products.map((p) => p.id));
+  return items.filter((i) => ids.has(i.productId)).reduce((n, i) => n + i.qty, 0);
+};
