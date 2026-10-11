@@ -42,10 +42,10 @@ app.use((err, req, res, next) => {
   res.status(500).render('error', { title: 'Error', message: 'Something went wrong. Please try again.' });
 });
 
-require('./models/db').init().then(
+require('./models/db').init().then(require('./models/user').seed).then(
   () => app.listen(3000, () => console.log('http://localhost:3000')),
   (err) => {
-    console.error(`Cannot reach MySQL (${err.parent?.code || err.name}). Check DB_* settings in .env and that the server is running.`);
+    console.error(`Cannot start: database error (${err.parent?.code || err.name}). Check DB_* settings in .env and that MySQL is running.`);
     process.exit(1);
   },
 );

@@ -15,6 +15,17 @@ const Product = sequelize.define('Product', {
   imageUrl: { type: DataTypes.TEXT('long'), allowNull: false },
 }, { tableName: 'products', updatedAt: false });
 
+// passwords are never stored: salt is random per user, passwordHash = scrypt(password, salt).
+// usernameHash = HMAC(secret pepper, lowercased username) is the login lookup key; username is the display name.
+const User = sequelize.define('User', {
+  id: { type: DataTypes.STRING, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+  username: { type: DataTypes.STRING(64), allowNull: false, unique: true },
+  usernameHash: { type: DataTypes.STRING(64), allowNull: false, unique: true },
+  role: { type: DataTypes.ENUM('admin', 'user'), allowNull: false, defaultValue: 'user' },
+  salt: { type: DataTypes.STRING(32), allowNull: false },
+  passwordHash: { type: DataTypes.STRING(128), allowNull: false },
+}, { tableName: 'users', updatedAt: false });
+
 const CartItem = sequelize.define('CartItem', {
   username: { type: DataTypes.STRING(64), primaryKey: true },
   productId: { type: DataTypes.STRING, primaryKey: true },
@@ -46,4 +57,4 @@ OrderItem.belongsTo(Order, { foreignKey: 'orderId' });
 // creates missing tables only; existing tables and data are left as they are
 const init = () => sequelize.sync();
 
-module.exports = { sequelize, Product, CartItem, Order, OrderItem, init };
+module.exports = { sequelize, User, Product, CartItem, Order, OrderItem, init };
