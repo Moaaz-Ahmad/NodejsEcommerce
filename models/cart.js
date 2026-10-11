@@ -1,16 +1,20 @@
-const db = require('./db');
+const { UniqueConstraintError } = require('sequelize');
+const { CartItem } = require('./db');
 
 // returns [{ productId, qty }]
-exports.get = async (username) =>
-  (await db.query('SELECT productId, qty FROM cart WHERE username = ?', [username]))[0];
+exports.get = (username) =>
+  CartItem.findAll({ where: { username }, attributes: ['productId', 'qty'], raw: true });
 
-exports.add = (username, productId) =>
-  db.query('INSERT INTO cart (username, productId, qty) VALUES (?, ?, 1) ON DUPLICATE KEY UPDATE qty = qty + 1',
-    [username, productId]);
+exports.add = async (username, productId) => {
+  try {
+    await CartItem.create({ username, productId, qty: 1 });
+  } catch (err) {
+    if (!(err instanceof UniqueConstraintError)) throw err;
+    await CartItem.increment('qty', { where: { username, productId } }); // already in cart: +1
+  }
+};
 
-exports.remove = (username, productId) =>
-  db.query('DELETE FROM cart WHERE username = ? AND productId = ?', [username, productId]);
+exports.remove = (username, productId) => CartItem.destroy({ where: { username, productId } });
 
 // badge count: total quantity in the user's cart (deleted products are already gone via the cascade)
-exports.count = async (username) =>
-  Number((await db.query('SELECT COALESCE(SUM(qty), 0) n FROM cart WHERE username = ?', [username]))[0][0].n);
+exports.count = async (username) => Number(await CartItem.sum('qty', { where: { username } })) || 0;

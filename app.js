@@ -45,7 +45,7 @@ app.use((err, req, res, next) => {
 require('./models/db').init().then(
   () => app.listen(3000, () => console.log('http://localhost:3000')),
   (err) => {
-    console.error(`Cannot reach MySQL (${err.code || err.message}). Check DB_* settings in .env and that the server is running.`);
+    console.error(`Cannot reach MySQL (${err.parent?.code || err.name}). Check DB_* settings in .env and that the server is running.`);
     process.exit(1);
   },
 );

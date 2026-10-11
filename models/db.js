@@ -1,19 +1,49 @@
-const fs = require('fs/promises');
-const path = require('path');
-const mysql = require('mysql2/promise');
+const { Sequelize, DataTypes } = require('sequelize');
 
-const pool = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD, // set in .env (not committed)
-  database: process.env.DB_NAME || 'node-complete',
-  waitForConnections: true,
-  connectionLimit: 10,
-  multipleStatements: true, // only used for schema.sql below; queries elsewhere are parameterized
-});
+const sequelize = new Sequelize(
+  process.env.DB_NAME || 'node-complete',
+  process.env.DB_USER || 'root',
+  process.env.DB_PASSWORD, // set in .env (not committed)
+  { host: process.env.DB_HOST || 'localhost', dialect: 'mysql', logging: false },
+);
 
-pool.init = async () => {
-  await pool.query(await fs.readFile(path.join(__dirname, '..', 'db', 'schema.sql'), 'utf8'));
-};
+// id is the primary (unique) key; title is the unique business key that identifies duplicate products
+const Product = sequelize.define('Product', {
+  id: { type: DataTypes.STRING, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+  title: { type: DataTypes.STRING, allowNull: false, unique: true },
+  price: { type: DataTypes.DOUBLE, allowNull: false },
+  imageUrl: { type: DataTypes.TEXT('long'), allowNull: false },
+}, { tableName: 'products', updatedAt: false });
 
-module.exports = pool;
+const CartItem = sequelize.define('CartItem', {
+  username: { type: DataTypes.STRING(64), primaryKey: true },
+  productId: { type: DataTypes.STRING, primaryKey: true },
+  qty: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 1 },
+}, { tableName: 'cart', timestamps: false });
+
+const Order = sequelize.define('Order', {
+  id: { type: DataTypes.STRING(36), primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+  username: { type: DataTypes.STRING(64), allowNull: false },
+  total: { type: DataTypes.DOUBLE, allowNull: false },
+  placedAt: { type: DataTypes.DATE(3), allowNull: false, defaultValue: DataTypes.NOW },
+}, { tableName: 'orders', timestamps: false, indexes: [{ fields: ['username'] }] });
+
+// title/price are snapshots so later product edits or deletes don't rewrite history
+const OrderItem = sequelize.define('OrderItem', {
+  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  orderId: { type: DataTypes.STRING(36), allowNull: false },
+  title: { type: DataTypes.STRING, allowNull: false },
+  price: { type: DataTypes.DOUBLE, allowNull: false },
+  qty: { type: DataTypes.INTEGER, allowNull: false },
+}, { tableName: 'order_items', timestamps: false });
+
+// deleting a product removes it from every cart; deleting an order removes its items
+Product.hasMany(CartItem, { foreignKey: 'productId', onDelete: 'CASCADE' });
+CartItem.belongsTo(Product, { foreignKey: 'productId' });
+Order.hasMany(OrderItem, { as: 'items', foreignKey: 'orderId', onDelete: 'CASCADE' });
+OrderItem.belongsTo(Order, { foreignKey: 'orderId' });
+
+// creates missing tables only; existing tables and data are left as they are
+const init = () => sequelize.sync();
+
+module.exports = { sequelize, Product, CartItem, Order, OrderItem, init };
