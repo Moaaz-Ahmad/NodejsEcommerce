@@ -1,40 +1,39 @@
 const crypto = require('crypto');
-const store = require('./store')('products', []);
+const db = require('./db');
 
-exports.all = async () => {
-  const products = await store.read();
-  if (products.every((p) => p.id)) return products;
-  // one-time migration: products saved before ids existed
-  return store.update((list) => list.forEach((p) => { p.id ||= crypto.randomUUID(); }));
-};
+const COLS = 'id, title, price, imageUrl';
+const isDuplicate = (err) => err.code === 'ER_DUP_ENTRY';
 
-exports.find = async (id) => (await exports.all()).find((p) => p.id === id);
+exports.all = async () => (await db.query(`SELECT ${COLS} FROM products ORDER BY createdAt, title`))[0];
 
-const same = (a, b) => a.trim().toLowerCase() === b.trim().toLowerCase();
+exports.find = async (id) => (await db.query(`SELECT ${COLS} FROM products WHERE id = ?`, [id]))[0][0];
 
-// product name is the unique key (case-insensitive): an existing name is updated instead of duplicated
+// product name is the unique key (UNIQUE index, case-insensitive): an existing name is updated instead of duplicated
 // returns true if a new product was created, false if an existing one was updated
 exports.upsert = async ({ title, price, imageUrl }) => {
-  let created = false;
-  await store.update((list) => {
-    const p = list.find((x) => same(x.title, title));
-    if (p) Object.assign(p, { title, price, imageUrl });
-    else { list.push({ id: crypto.randomUUID(), title, price, imageUrl }); created = true; }
-  });
-  return created;
+  try {
+    await db.query('INSERT INTO products (id, title, price, imageUrl) VALUES (?, ?, ?, ?)',
+      [crypto.randomUUID(), title, price, imageUrl]);
+    return true;
+  } catch (err) {
+    if (!isDuplicate(err)) throw err;
+    await db.query('UPDATE products SET title = ?, price = ?, imageUrl = ? WHERE title = ?',
+      [title, price, imageUrl, title]);
+    return false;
+  }
 };
 
 // returns 'ok' | 'missing' | 'duplicate' (another product already uses that name)
 exports.update = async (id, { title, price, imageUrl }) => {
-  let result = 'missing';
-  await store.update((list) => {
-    const p = list.find((x) => x.id === id);
-    if (!p) return;
-    if (list.some((x) => x.id !== id && same(x.title, title))) { result = 'duplicate'; return; }
-    Object.assign(p, { title, price, imageUrl });
-    result = 'ok';
-  });
-  return result;
+  if (!(await exports.find(id))) return 'missing';
+  try {
+    await db.query('UPDATE products SET title = ?, price = ?, imageUrl = ? WHERE id = ?', [title, price, imageUrl, id]);
+    return 'ok';
+  } catch (err) {
+    if (isDuplicate(err)) return 'duplicate';
+    throw err;
+  }
 };
 
-exports.remove = (id) => store.update((list) => list.filter((p) => p.id !== id));
+// cart rows referencing the product are removed by the ON DELETE CASCADE foreign key
+exports.remove = (id) => db.query('DELETE FROM products WHERE id = ?', [id]);

@@ -1,5 +1,4 @@
 const Product = require('../models/product');
-const Cart = require('../models/cart');
 
 // returns { data } or { error }
 function parse(body) {
@@ -58,6 +57,5 @@ exports.postEditProduct = async (req, res) => {
 
 exports.postDeleteProduct = async (req, res) => {
   await Product.remove(req.params.id);
-  await Cart.removeEverywhere(req.params.id);
   res.redirect('/admin/products');
 };

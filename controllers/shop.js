@@ -47,6 +47,5 @@ exports.postCheckout = async (req, res) => {
   const { lines } = await cartLines(username);
   if (!lines.length) return res.redirect('/cart');
   await Order.place(username, lines.map((l) => ({ title: l.product.title, price: l.product.price, qty: l.qty })));
-  await Cart.clear(username);
   res.redirect('/profile');
 };

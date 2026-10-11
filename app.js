@@ -1,3 +1,5 @@
+try { process.loadEnvFile(); } catch { /* no .env: rely on real environment variables */ }
+
 const express = require('express');
 const session = require('express-session');
 const crypto = require('crypto');
@@ -40,4 +42,10 @@ app.use((err, req, res, next) => {
   res.status(500).render('error', { title: 'Error', message: 'Something went wrong. Please try again.' });
 });
 
-app.listen(3000, () => console.log('http://localhost:3000'));
+require('./models/db').init().then(
+  () => app.listen(3000, () => console.log('http://localhost:3000')),
+  (err) => {
+    console.error(`Cannot reach MySQL (${err.code || err.message}). Check DB_* settings in .env and that the server is running.`);
+    process.exit(1);
+  },
+);
