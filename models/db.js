@@ -16,28 +16,27 @@ const Product = sequelize.define('Product', {
 }, { tableName: 'products', updatedAt: false });
 
 // passwords are never stored: salt is random per user, passwordHash = scrypt(password, salt).
-// usernameHash = HMAC(secret pepper, lowercased username) is the login lookup key; username is the display name.
+// No username or role is stored: usernameHash = HMAC(secret pepper, lowercased username) is the login lookup key,
+// and the admin is the account whose hash matches ADMIN_USERNAME (see models/user.js).
 const User = sequelize.define('User', {
   id: { type: DataTypes.STRING, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-  username: { type: DataTypes.STRING(64), allowNull: false, unique: true },
   usernameHash: { type: DataTypes.STRING(64), allowNull: false, unique: true },
-  role: { type: DataTypes.ENUM('admin', 'user'), allowNull: false, defaultValue: 'user' },
   salt: { type: DataTypes.STRING(32), allowNull: false },
   passwordHash: { type: DataTypes.STRING(128), allowNull: false },
 }, { tableName: 'users', updatedAt: false });
 
 const CartItem = sequelize.define('CartItem', {
-  username: { type: DataTypes.STRING(64), primaryKey: true },
+  userId: { type: DataTypes.STRING, primaryKey: true },
   productId: { type: DataTypes.STRING, primaryKey: true },
   qty: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 1 },
 }, { tableName: 'cart', timestamps: false });
 
 const Order = sequelize.define('Order', {
   id: { type: DataTypes.STRING(36), primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-  username: { type: DataTypes.STRING(64), allowNull: false },
+  userId: { type: DataTypes.STRING, allowNull: false },
   total: { type: DataTypes.DOUBLE, allowNull: false },
   placedAt: { type: DataTypes.DATE(3), allowNull: false, defaultValue: DataTypes.NOW },
-}, { tableName: 'orders', timestamps: false, indexes: [{ fields: ['username'] }] });
+}, { tableName: 'orders', timestamps: false, indexes: [{ fields: ['userId'] }] });
 
 // title/price are snapshots so later product edits or deletes don't rewrite history
 const OrderItem = sequelize.define('OrderItem', {
@@ -48,6 +47,10 @@ const OrderItem = sequelize.define('OrderItem', {
   qty: { type: DataTypes.INTEGER, allowNull: false },
 }, { tableName: 'order_items', timestamps: false });
 
+User.hasMany(CartItem, { foreignKey: 'userId', onDelete: 'CASCADE' });
+CartItem.belongsTo(User, { foreignKey: 'userId' });
+User.hasMany(Order, { foreignKey: 'userId', onDelete: 'CASCADE' });
+Order.belongsTo(User, { foreignKey: 'userId' });
 // deleting a product removes it from every cart; deleting an order removes its items
 Product.hasMany(CartItem, { foreignKey: 'productId', onDelete: 'CASCADE' });
 CartItem.belongsTo(Product, { foreignKey: 'productId' });

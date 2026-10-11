@@ -3,8 +3,8 @@ const Cart = require('../models/cart');
 const Order = require('../models/order');
 
 // cart entries joined with current products; entries whose product was deleted are dropped
-async function cartLines(username) {
-  const [items, products] = await Promise.all([Cart.get(username), Product.all()]);
+async function cartLines(userId) {
+  const [items, products] = await Promise.all([Cart.get(userId), Product.all()]);
   const lines = items
     .map((i) => ({ product: products.find((p) => p.id === i.productId), qty: i.qty }))
     .filter((l) => l.product);
@@ -23,29 +23,29 @@ exports.getProduct = async (req, res) => {
 };
 
 exports.getCart =async (req, res) => {
-  res.render('shop/cart', { title: 'Cart', ...(await cartLines(req.session.user.username)) });
+  res.render('shop/cart', { title: 'Cart', ...(await cartLines(req.session.user.id)) });
 };
 
 exports.postCart = async (req, res) => {
-  if (await Product.find(req.body.productId)) await Cart.add(req.session.user.username, req.body.productId);
+  if (await Product.find(req.body.productId)) await Cart.add(req.session.user.id, req.body.productId);
   res.redirect('/cart');
 };
 
 exports.postCartDelete = async (req, res) => {
-  await Cart.remove(req.session.user.username, req.body.productId);
+  await Cart.remove(req.session.user.id, req.body.productId);
   res.redirect('/cart');
 };
 
 exports.getCheckout = async (req, res) => {
-  const cart = await cartLines(req.session.user.username);
+  const cart = await cartLines(req.session.user.id);
   if (!cart.lines.length) return res.redirect('/cart');
   res.render('shop/checkout', { title: 'Checkout', ...cart });
 };
 
 exports.postCheckout = async (req, res) => {
-  const { username } = req.session.user;
-  const { lines } = await cartLines(username);
+  const { id } = req.session.user;
+  const { lines } = await cartLines(id);
   if (!lines.length) return res.redirect('/cart');
-  await Order.place(username, lines.map((l) => ({ title: l.product.title, price: l.product.price, qty: l.qty })));
+  await Order.place(id, lines.map((l) => ({ title: l.product.title, price: l.product.price, qty: l.qty })));
   res.redirect('/profile');
 };

@@ -3,7 +3,7 @@
   <form class="md-form" method="POST" action="/login">
     <h1 class="md-title">Login</h1>
     <div class="md-field">
-      <label for="username">Username (admin or user)</label>
+      <label for="username">Username</label>
       <input id="username" name="username" required autofocus>
     </div>
     <div class="md-field">
@@ -11,5 +11,6 @@
       <input id="password" name="password" type="password" required>
     </div>
     <button class="md-button-filled">Login</button>
+    <p class="md-muted">No account? <a href="/register">Create one</a></p>
   </form>
 <%- include('../partials/foot') %>

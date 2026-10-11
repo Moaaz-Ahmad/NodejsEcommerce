@@ -24,7 +24,7 @@ app.use(async (req, res, next) => {
   res.locals.user = user;
   res.locals.toast = req.session.flash || null; // one-shot message set before a redirect
   delete req.session.flash;
-  res.locals.cartCount = user ? await Cart.count(user.username) : 0;
+  res.locals.cartCount = user ? await Cart.count(user.id) : 0;
   next();
 });
 
