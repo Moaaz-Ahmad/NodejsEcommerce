@@ -3,18 +3,7 @@
   <div class="cart-container">
     <div class="cart-items-list">
       <% lines.forEach(l => { %>
-        <div class="cart-item">
-          <% if (l.product.imageUrl) { %>
-            <img class="cart-item__image" src="<%= l.product.imageUrl %>" alt="" onerror="this.style.visibility='hidden'">
-          <% } else { %>
-            <div class="cart-item__image"></div>
-          <% } %>
-          <div class="cart-item__details">
-            <span class="cart-item__title"><%= l.product.title %></span>
-            <span class="cart-item__price">$<%= l.product.price.toFixed(2) %> &times; <%= l.qty %></span>
-          </div>
-          <span class="cart-item__total">$<%= (l.product.price * l.qty).toFixed(2) %></span>
-        </div>
+        <%- include('../partials/cart-item', { line: l, removable: false }) %>
       <% }) %>
     </div>
     <aside class="cart-summary">

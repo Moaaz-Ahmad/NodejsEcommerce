@@ -1,63 +1,59 @@
-const { Sequelize, DataTypes } = require('sequelize');
+const crypto = require('crypto');
+const mongoose = require('mongoose');
 
-const sequelize = new Sequelize(
-  process.env.DB_NAME || 'node-complete',
-  process.env.DB_USER || 'root',
-  process.env.DB_PASSWORD, // set in .env (not committed)
-  { host: process.env.DB_HOST || 'localhost', dialect: 'mysql', logging: false },
-);
+const uuid = () => crypto.randomUUID();
+// ids are UUID strings (not ObjectIds), so URLs stay the same and invalid ids never throw cast errors
+const id = { type: String, default: uuid };
+
+// case-insensitive matching for product titles (used by the unique index and by every title query)
+const CI = { locale: 'en', strength: 2 };
 
 // id is the primary (unique) key; title is the unique business key that identifies duplicate products
-const Product = sequelize.define('Product', {
-  id: { type: DataTypes.STRING, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-  title: { type: DataTypes.STRING, allowNull: false, unique: true },
-  price: { type: DataTypes.DOUBLE, allowNull: false },
-  imageUrl: { type: DataTypes.TEXT('long'), allowNull: false },
-}, { tableName: 'products', updatedAt: false });
+const productSchema = new mongoose.Schema({
+  _id: id,
+  title: { type: String, required: true, trim: true },
+  price: { type: Number, required: true },
+  imageUrl: { type: String, default: '' },
+}, { timestamps: { createdAt: true, updatedAt: false } });
+productSchema.index({ title: 1 }, { unique: true, collation: CI });
 
-// passwords are never stored: salt is random per user, passwordHash = scrypt(password, salt).
 // No username or role is stored: usernameHash = HMAC(secret pepper, lowercased username) is the login lookup key,
 // and the admin is the account whose hash matches ADMIN_USERNAME (see models/user.js).
-const User = sequelize.define('User', {
-  id: { type: DataTypes.STRING, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-  usernameHash: { type: DataTypes.STRING(64), allowNull: false, unique: true },
-  salt: { type: DataTypes.STRING(32), allowNull: false },
-  passwordHash: { type: DataTypes.STRING(128), allowNull: false },
-}, { tableName: 'users', updatedAt: false });
+// passwordHash = scrypt(password, salt) with a random salt per user; the password itself is never stored.
+const userSchema = new mongoose.Schema({
+  _id: id,
+  usernameHash: { type: String, required: true, unique: true },
+  salt: { type: String, required: true },
+  passwordHash: { type: String, required: true },
+}, { timestamps: { createdAt: true, updatedAt: false } });
 
-const CartItem = sequelize.define('CartItem', {
-  userId: { type: DataTypes.STRING, primaryKey: true },
-  productId: { type: DataTypes.STRING, primaryKey: true },
-  qty: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 1 },
-}, { tableName: 'cart', timestamps: false });
+const cartItemSchema = new mongoose.Schema({
+  userId: { type: String, required: true },
+  productId: { type: String, required: true },
+  qty: { type: Number, required: true, default: 1 },
+}, { versionKey: false });
+cartItemSchema.index({ userId: 1, productId: 1 }, { unique: true });
+cartItemSchema.index({ productId: 1 });
 
-const Order = sequelize.define('Order', {
-  id: { type: DataTypes.STRING(36), primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-  userId: { type: DataTypes.STRING, allowNull: false },
-  total: { type: DataTypes.DOUBLE, allowNull: false },
-  placedAt: { type: DataTypes.DATE(3), allowNull: false, defaultValue: DataTypes.NOW },
-}, { tableName: 'orders', timestamps: false, indexes: [{ fields: ['userId'] }] });
+// items are embedded snapshots (title/price/qty) so later product edits or deletes don't rewrite history
+const orderSchema = new mongoose.Schema({
+  _id: id,
+  userId: { type: String, required: true, index: true },
+  total: { type: Number, required: true },
+  placedAt: { type: Date, default: Date.now },
+  items: [{ _id: false, title: String, price: Number, qty: Number }],
+}, { versionKey: false });
 
-// title/price are snapshots so later product edits or deletes don't rewrite history
-const OrderItem = sequelize.define('OrderItem', {
-  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  orderId: { type: DataTypes.STRING(36), allowNull: false },
-  title: { type: DataTypes.STRING, allowNull: false },
-  price: { type: DataTypes.DOUBLE, allowNull: false },
-  qty: { type: DataTypes.INTEGER, allowNull: false },
-}, { tableName: 'order_items', timestamps: false });
+const Product = mongoose.model('Product', productSchema);
+const User = mongoose.model('User', userSchema);
+const CartItem = mongoose.model('CartItem', cartItemSchema);
+const Order = mongoose.model('Order', orderSchema);
 
-User.hasMany(CartItem, { foreignKey: 'userId', onDelete: 'CASCADE' });
-CartItem.belongsTo(User, { foreignKey: 'userId' });
-User.hasMany(Order, { foreignKey: 'userId', onDelete: 'CASCADE' });
-Order.belongsTo(User, { foreignKey: 'userId' });
-// deleting a product removes it from every cart; deleting an order removes its items
-Product.hasMany(CartItem, { foreignKey: 'productId', onDelete: 'CASCADE' });
-CartItem.belongsTo(Product, { foreignKey: 'productId' });
-Order.hasMany(OrderItem, { as: 'items', foreignKey: 'orderId', onDelete: 'CASCADE' });
-OrderItem.belongsTo(Order, { foreignKey: 'orderId' });
+const init = async () => {
+  await mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/node-complete', {
+    serverSelectionTimeoutMS: 5000, // fail fast with a clear message when MongoDB isn't reachable
+  });
+  await Promise.all(Object.values(mongoose.models).map((m) => m.init())); // make sure indexes exist
+};
 
-// creates missing tables only; existing tables and data are left as they are
-const init = () => sequelize.sync();
-
-module.exports = { sequelize, User, Product, CartItem, Order, OrderItem, init };
+module.exports = { mongoose, CI, User, Product, CartItem, Order, init };

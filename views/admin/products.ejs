@@ -2,14 +2,10 @@
   <h1 class="md-title">Manage Products</h1>
   <p><a class="md-button-filled" href="/admin/add-product">Add Product</a></p>
   <% if (products.length) { %>
-    <div class="cart-items-list" style="margin-top:16px">
+    <div class="cart-items-list section-gap">
       <% products.forEach(p => { %>
         <div class="cart-item">
-          <% if (p.imageUrl) { %>
-            <img class="cart-item__image" src="<%= p.imageUrl %>" alt="" onerror="this.style.visibility='hidden'">
-          <% } else { %>
-            <div class="cart-item__image"></div>
-          <% } %>
+          <%- include('../partials/image', { src: p.imageUrl, alt: '', cls: 'cart-item__image' }) %>
           <div class="cart-item__details">
             <span class="cart-item__title"><%= p.title %></span>
             <span class="cart-item__price">$<%= p.price.toFixed(2) %></span>

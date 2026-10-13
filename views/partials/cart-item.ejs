@@ -1,0 +1,17 @@
+<%# one cart/checkout line. locals: line ({ product, qty }), removable %>
+<div class="cart-item">
+  <%- include('image', { src: line.product.imageUrl, alt: '', cls: 'cart-item__image' }) %>
+  <div class="cart-item__details">
+    <a class="cart-item__title" href="/products/<%= line.product.id %>"><%= line.product.title %></a>
+    <span class="cart-item__price">$<%= line.product.price.toFixed(2) %> &times; <%= line.qty %></span>
+  </div>
+  <span class="cart-item__total">$<%= (line.product.price * line.qty).toFixed(2) %></span>
+  <% if (removable) { %>
+    <form class="md-inline-form" method="POST" action="/cart/delete">
+      <input type="hidden" name="productId" value="<%= line.product.id %>">
+      <button class="md-icon-button" title="Remove" aria-label="Remove <%= line.product.title %>">
+        <span class="material-symbols-outlined">delete</span>
+      </button>
+    </form>
+  <% } %>
+</div>

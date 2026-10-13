@@ -22,17 +22,21 @@ exports.getProduct = async (req, res) => {
   res.render('shop/product', { title: product.title, product });
 };
 
-exports.getCart =async (req, res) => {
+exports.getCart = async (req, res) => {
   res.render('shop/cart', { title: 'Cart', ...(await cartLines(req.session.user.id)) });
 };
 
+// form fields are coerced to strings: a repeated field (?productId=a&productId=b) arrives as an array
+const productIdOf = (req) => String(req.body.productId || '');
+
 exports.postCart = async (req, res) => {
-  if (await Product.find(req.body.productId)) await Cart.add(req.session.user.id, req.body.productId);
+  const productId = productIdOf(req);
+  if (await Product.find(productId)) await Cart.add(req.session.user.id, productId);
   res.redirect('/cart');
 };
 
 exports.postCartDelete = async (req, res) => {
-  await Cart.remove(req.session.user.id, req.body.productId);
+  await Cart.remove(req.session.user.id, productIdOf(req));
   res.redirect('/cart');
 };
 

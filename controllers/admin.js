@@ -2,10 +2,12 @@ const Product = require('../models/product');
 
 // returns { data } or { error }
 function parse(body) {
-  const title = (body.title || '').trim();
+  const title = String(body.title || '').trim();
   const price = parseFloat(body.price);
-  const imageUrl = (body.imageUrl || '').trim();
+  const imageUrl = String(body.imageUrl || '').trim();
   if (!title || !Number.isFinite(price) || price < 0) return { error: 'Enter a title and a non-negative price.' };
+  if (title.length > 200) return { error: 'Title must be 200 characters or fewer.' };
+  if (imageUrl.length > 2048) return { error: 'Image URL is too long.' };
   if (imageUrl && !/^https?:\/\//i.test(imageUrl)) return { error: 'Image URL must start with http:// or https://.' };
   return { data: { title, price, imageUrl } };
 }

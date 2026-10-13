@@ -4,11 +4,7 @@
     <div class="product-grid">
       <% products.forEach(p => { %>
         <article class="md-card">
-          <% if (p.imageUrl) { %>
-            <img class="md-card__media" src="<%= p.imageUrl %>" alt="<%= p.title %>" loading="lazy" onerror="this.style.visibility='hidden'">
-          <% } else { %>
-            <div class="md-card__media"></div>
-          <% } %>
+          <%- include('../partials/image', { src: p.imageUrl, alt: p.title, cls: 'md-card__media' }) %>
           <div class="md-card__content">
             <h2 class="md-card__title"><%= p.title %></h2>
             <p class="md-card__price">$<%= p.price.toFixed(2) %></p>

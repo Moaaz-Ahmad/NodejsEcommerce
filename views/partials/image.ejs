@@ -1,0 +1,6 @@
+<%# product image, or an empty placeholder box when there is none or it fails to load. locals: src, alt, cls %>
+<% if (src) { %>
+  <img class="<%= cls %>" src="<%= src %>" alt="<%= alt %>" loading="lazy" onerror="this.style.visibility='hidden'">
+<% } else { %>
+  <div class="<%= cls %>"></div>
+<% } %>

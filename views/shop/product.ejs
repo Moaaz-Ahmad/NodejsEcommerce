@@ -1,11 +1,7 @@
 <%- include('../partials/head') %>
   <div class="back-link"><a class="md-button-text" href="/">&larr; Back to shop</a></div>
   <article class="md-card detail-card">
-    <% if (product.imageUrl) { %>
-      <img class="md-card__media" src="<%= product.imageUrl %>" alt="<%= product.title %>" onerror="this.style.visibility='hidden'">
-    <% } else { %>
-      <div class="md-card__media"></div>
-    <% } %>
+    <%- include('../partials/image', { src: product.imageUrl, alt: product.title, cls: 'md-card__media' }) %>
     <div class="md-card__content">
       <h1><%= product.title %></h1>
       <p class="md-card__price">$<%= product.price.toFixed(2) %></p>

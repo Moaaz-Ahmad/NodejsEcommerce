@@ -12,6 +12,7 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'Public')));
 app.use(express.urlencoded({ extended: false }));
+app.use((req, res, next) => { req.body ??= {}; next(); }); // Express 5 leaves req.body undefined when a POST has no form body
 // ponytail: in-memory sessions, so logins reset on restart; use a persistent store + fixed SESSION_SECRET in production
 app.use(session({
   secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
@@ -28,9 +29,7 @@ app.use(async (req, res, next) => {
   next();
 });
 
-app.use(require('./routes/auth'));
-app.use('/admin', require('./routes/admin'));
-app.use(require('./routes/shop'));
+app.use(require('./routes'));
 
 app.use((req, res) => {
   res.status(404).render('error', { title: 'Not Found', message: 'Page not found.' });
@@ -43,9 +42,12 @@ app.use((err, req, res, next) => {
 });
 
 require('./models/db').init().then(require('./models/user').seed).then(
-  () => app.listen(3000, () => console.log('http://localhost:3000')),
+  () => {
+    const port = process.env.PORT || 3000;
+    app.listen(port, () => console.log(`http://localhost:${port}`));
+  },
   (err) => {
-    console.error(`Cannot start: database error (${err.parent?.code || err.name}). Check DB_* settings in .env and that MySQL is running.`);
+    console.error(`Cannot start: database error (${err.name}). Check MONGODB_URI in .env and that MongoDB is running.`);
     process.exit(1);
   },
 );

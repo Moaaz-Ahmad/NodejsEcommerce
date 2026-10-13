@@ -4,7 +4,7 @@
     <strong><%= user.username %></strong>
     <span><%= user.role %></span>
   </div>
-  <p style="margin-top:16px"><a class="md-button-outlined" href="/change-password">Change password</a></p>
+  <p class="section-gap"><a class="md-button-outlined" href="/change-password">Change password</a></p>
   <h2 class="md-subtitle">Order history</h2>
   <% if (orders.length) { %>
     <% orders.forEach(o => { %>

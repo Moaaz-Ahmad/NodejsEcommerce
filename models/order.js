@@ -1,19 +1,14 @@
-const { sequelize, Order, OrderItem, CartItem } = require('./db');
+const { Order, CartItem } = require('./db');
 
-// items are snapshots ({ title, price, qty }). Order insert and cart clear commit together,
-// so a failure never leaves a paid-for cart behind.
-exports.place = (userId, items) =>
-  sequelize.transaction(async (transaction) => {
-    const total = items.reduce((sum, i) => sum + i.price * i.qty, 0);
-    const order = await Order.create({ userId, total }, { transaction });
-    await OrderItem.bulkCreate(items.map((i) => ({ ...i, orderId: order.id })), { transaction });
-    await CartItem.destroy({ where: { userId }, transaction });
-  });
+// items are snapshots ({ title, price, qty }).
+// ponytail: order insert and cart clear are two writes (multi-document transactions need a replica set);
+// if the clear fails the user sees an error with the cart intact, and retrying would duplicate the order.
+exports.place = async (userId, items) => {
+  const total = items.reduce((sum, i) => sum + i.price * i.qty, 0);
+  await Order.create({ userId, total, items });
+  await CartItem.deleteMany({ userId });
+};
 
 // newest first, each with its items
 exports.forUser = async (userId) =>
-  (await Order.findAll({
-    where: { userId },
-    include: [{ model: OrderItem, as: 'items' }],
-    order: [['placedAt', 'DESC'], [{ model: OrderItem, as: 'items' }, 'id', 'ASC']],
-  })).map((o) => o.get({ plain: true }));
+  (await Order.find({ userId }).sort({ placedAt: -1 }).lean()).map((o) => ({ ...o, id: o._id }));

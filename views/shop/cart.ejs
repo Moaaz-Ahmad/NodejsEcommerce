@@ -4,24 +4,7 @@
     <div class="cart-container">
       <div class="cart-items-list">
         <% lines.forEach(l => { %>
-          <div class="cart-item">
-            <% if (l.product.imageUrl) { %>
-              <img class="cart-item__image" src="<%= l.product.imageUrl %>" alt="" onerror="this.style.visibility='hidden'">
-            <% } else { %>
-              <div class="cart-item__image"></div>
-            <% } %>
-            <div class="cart-item__details">
-              <a class="cart-item__title" href="/products/<%= l.product.id %>"><%= l.product.title %></a>
-              <span class="cart-item__price">$<%= l.product.price.toFixed(2) %> &times; <%= l.qty %></span>
-            </div>
-            <span class="cart-item__total">$<%= (l.product.price * l.qty).toFixed(2) %></span>
-            <form class="md-inline-form" method="POST" action="/cart/delete">
-              <input type="hidden" name="productId" value="<%= l.product.id %>">
-              <button class="md-icon-button" title="Remove" aria-label="Remove <%= l.product.title %>">
-                <span class="material-symbols-outlined">delete</span>
-              </button>
-            </form>
-          </div>
+          <%- include('../partials/cart-item', { line: l, removable: true }) %>
         <% }) %>
       </div>
       <aside class="cart-summary">

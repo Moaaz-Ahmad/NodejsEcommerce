@@ -1,40 +1,42 @@
-const { UniqueConstraintError } = require('sequelize');
-const { Product } = require('./db');
+const { Product, CartItem, CI } = require('./db');
 
-exports.all = () =>
-  Product.findAll({
-    attributes: ['id', 'title', 'price', 'imageUrl'],
-    order: [['createdAt', 'ASC'], ['title', 'ASC']],
-    raw: true,
-  });
+const isDuplicate = (err) => err.code === 11000;
+const plain = (p) => p && { id: p._id, title: p.title, price: p.price, imageUrl: p.imageUrl };
 
-exports.find = (id) => Product.findByPk(id, { raw: true });
+exports.all = async () =>
+  (await Product.find().sort({ createdAt: 1, title: 1 }).collation(CI).lean()).map(plain);
 
-// title is the unique key (case-insensitive collation): an existing title is updated instead of duplicated
+exports.find = async (id) => plain(await Product.findById(id).lean());
+
+// title is the unique key (case-insensitive index): an existing title is updated instead of duplicated
 // returns true if a new product was created, false if an existing one was updated
 exports.upsert = async ({ title, price, imageUrl }) => {
   try {
     await Product.create({ title, price, imageUrl });
     return true;
   } catch (err) {
-    if (!(err instanceof UniqueConstraintError)) throw err;
-    await Product.update({ title, price, imageUrl }, { where: { title } });
+    if (!isDuplicate(err)) throw err;
+    await Product.updateOne({ title: title.trim() }, { title, price, imageUrl }).collation(CI);
     return false;
   }
 };
 
 // returns 'ok' | 'missing' | 'duplicate' (another product already uses that title)
 exports.update = async (id, { title, price, imageUrl }) => {
-  const product = await Product.findByPk(id);
+  const product = await Product.findById(id);
   if (!product) return 'missing';
   try {
-    await product.update({ title, price, imageUrl });
+    Object.assign(product, { title, price, imageUrl });
+    await product.save();
     return 'ok';
   } catch (err) {
-    if (err instanceof UniqueConstraintError) return 'duplicate';
+    if (isDuplicate(err)) return 'duplicate';
     throw err;
   }
 };
 
-// cart rows referencing the product are removed by the ON DELETE CASCADE foreign key
-exports.remove = (id) => Product.destroy({ where: { id } });
+// no foreign keys in MongoDB, so the product is removed from every cart explicitly
+exports.remove = async (id) => {
+  await Product.deleteOne({ _id: id });
+  await CartItem.deleteMany({ productId: id });
+};
