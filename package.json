@@ -1,14 +1,14 @@
 {
   "name": "simplecom",
   "version": "1.0.0",
+  "description": "A small MVC e-commerce app with Express, EJS and MongoDB",
   "main": "app.js",
   "scripts": {
     "start": "node app.js"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "Express + EJS MVC shop with MongoDB (Mongoose), sessions, cart, checkout and admin",
+  "author": "Moaaz",
+  "license": "Apache-2.0",
   "dependencies": {
     "ejs": "^7.0.1",
     "express": "^5.3.0",
