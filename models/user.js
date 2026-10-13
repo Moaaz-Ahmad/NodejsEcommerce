@@ -1,12 +1,19 @@
+// User accounts and authentication.
+// Passwords are stored as scrypt hashes with a random salt per user.
+// Usernames are stored as an HMAC (keyed with USERNAME_PEPPER) so only the hash is in the database.
+
 const crypto = require('crypto');
 const { promisify } = require('util');
 const { User } = require('./db');
 
+// Secret key for the username HMAC. Without it no account can be looked up, so refuse to start
 const PEPPER = process.env.USERNAME_PEPPER;
 if (!PEPPER) throw new Error('USERNAME_PEPPER is not set (see .env.example)');
 
+// scrypt is deliberately slow and memory-hungry, which makes guessing passwords expensive
 const scrypt = promisify(crypto.scrypt);
 const hash = async (password, salt) => (await scrypt(String(password), salt, 64)).toString('hex');
+// A fresh random salt for each password, so equal passwords get different hashes
 const newSalt = () => crypto.randomBytes(16).toString('hex');
 // keyed hash of the normalized username: the lookup key, so login is case-insensitive
 const usernameHash = (username) =>
@@ -17,12 +24,15 @@ const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 const ADMIN_HASH = usernameHash(ADMIN_USERNAME);
 const roleOf = (user) => (user.usernameHash === ADMIN_HASH ? 'admin' : 'user');
 
+// Used when a username does not exist, so a failed login takes as long as a real one
 const DUMMY_SALT = newSalt();
 
+// True when the name is the admin account name. Nobody can register under it
 exports.isReserved = (username) => usernameHash(username) === ADMIN_HASH;
 
 // returns the session user { id, username, role } or null.
 // username is only the name typed at login (the database doesn't store it), kept for display.
+// Check a username and password. Returns the session user, or null if they do not match
 exports.authenticate = async (username, password) => {
   const user = await User.findOne({ usernameHash: usernameHash(username) });
   // hash even when the user doesn't exist, so response time doesn't reveal which usernames are real
@@ -32,6 +42,7 @@ exports.authenticate = async (username, password) => {
 };
 
 // returns the session user, or null when the username is already taken (case-insensitive)
+// Create an account with a hashed password. Returns the session user, or null if the username is taken
 exports.create = async (username, password) => {
   const salt = newSalt();
   try {
@@ -44,12 +55,14 @@ exports.create = async (username, password) => {
 };
 
 // new random salt on every change; caller must have verified the current password
+// Replace an account password (new salt and hash)
 exports.setPassword = async (id, password) => {
   const salt = newSalt();
   await User.updateOne({ _id: id }, { salt, passwordHash: await hash(password, salt) });
 };
 
 // first run only: creates the admin account (everyone else registers). Set ADMIN_PASSWORD to override the default.
+// Create the admin account on first run only, when the users collection is empty
 exports.seed = async () => {
   if (await User.estimatedDocumentCount()) return;
   await exports.create(ADMIN_USERNAME, process.env.ADMIN_PASSWORD || 'admin123');

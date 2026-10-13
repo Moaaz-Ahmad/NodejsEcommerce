@@ -1,3 +1,6 @@
+// All URL routes, in one place.
+// Public routes come first, then the admin area (admin only), then everything else, which needs a signed-in user.
+
 const { Router } = require('express');
 const auth = require('../controllers/auth');
 const shop = require('../controllers/shop');

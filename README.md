@@ -131,9 +131,10 @@ check out, and try an admin page as a regular user).
 
 ## Contributing
 
-Issues and pull requests are welcome. Keep changes small and focused, follow the existing
-MVC layout, and do not commit `.env` or any credentials.
+Issues and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for how to report bugs,
+propose changes and submit a pull request.
 
 ## License
 
-Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE).
+Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for the full text and
+[NOTICE](NOTICE) for copyright and third-party attributions.

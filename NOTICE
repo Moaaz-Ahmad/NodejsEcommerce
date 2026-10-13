@@ -1,0 +1,15 @@
+SimpleCom
+Copyright 2026 Moaaz
+
+This product is licensed under the Apache License, Version 2.0 (see the LICENSE file).
+
+This product includes the following third-party software, which is not
+distributed in this repository. It is installed from npm and remains under its
+own license:
+
+  - ejs (version 7.x)                 Apache License, Version 2.0
+  - express (version 5.x)             MIT License
+  - express-session                   MIT License
+  - mongoose                          MIT License
+
+Their full license texts are included with each package in node_modules/.

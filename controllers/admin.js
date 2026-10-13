@@ -1,6 +1,9 @@
+// Admin handlers: list, add, edit and delete products. Routes already restrict these to the admin account.
+
 const Product = require('../models/product');
 
 // returns { data } or { error }
+// Validate and tidy the product form: trim text, require a title and a price of zero or more, cap lengths, and allow only http(s) image links or none
 function parse(body) {
   const title = String(body.title || '').trim();
   const price = parseFloat(body.price);
@@ -12,16 +15,20 @@ function parse(body) {
   return { data: { title, price, imageUrl } };
 }
 
+// Shared 404 response for a product id that does not exist
 const notFound = (res) => res.status(404).render('error', { title: 'Not Found', message: 'Product not found.' });
 
+// Product management list
 exports.getProducts = async (req, res) => {
   res.render('admin/products', { title: 'Manage Products', products: await Product.all() });
 };
 
+// Empty add-product form
 exports.getAddProduct = (req, res) => {
   res.render('admin/edit-product', { title: 'Add Product', product: {}, error: null });
 };
 
+// Add a product. If the title already exists, that product is updated instead and the admin sees a notice saying so
 exports.postAddProduct = async (req, res) => {
   const { data, error } = parse(req.body);
   if (error) return res.status(400).render('admin/edit-product', { title: 'Add Product', product: req.body, error });
@@ -32,12 +39,14 @@ exports.postAddProduct = async (req, res) => {
   res.redirect('/admin/products');
 };
 
+// Edit form, filled in with the product
 exports.getEditProduct = async (req, res) => {
   const product = await Product.find(req.params.id);
   if (!product) return notFound(res);
   res.render('admin/edit-product', { title: 'Edit Product', product, error: null });
 };
 
+// Save product edits. Bad input or a title used by another product re-shows the form with an error
 exports.postEditProduct = async (req, res) => {
   const { data, error } = parse(req.body);
   if (error) {
@@ -57,6 +66,7 @@ exports.postEditProduct = async (req, res) => {
   res.redirect('/admin/products');
 };
 
+// Delete a product. Its cart lines are removed too
 exports.postDeleteProduct = async (req, res) => {
   await Product.remove(req.params.id);
   res.redirect('/admin/products');
