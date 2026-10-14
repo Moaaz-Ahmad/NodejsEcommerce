@@ -1,5 +1,5 @@
-// Database connection and schemas (Mongoose).
-// Defines the collections: products, users, cart items and orders, their indexes, and init().
+// Mongoose schemas and models: the shape of each collection (products, users, cart items, orders) and its indexes.
+// Connecting to the database is lib/database.js; reading and writing is the other files in models/.
 
 const crypto = require('crypto');
 const mongoose = require('mongoose');
@@ -58,12 +58,4 @@ const User = mongoose.model('User', userSchema);
 const CartItem = mongoose.model('CartItem', cartItemSchema);
 const Order = mongoose.model('Order', orderSchema);
 
-// Connect to MongoDB (MONGODB_URI, or a local default) and make sure every index exists. Called once at startup
-const init = async () => {
-  await mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/node-complete', {
-    serverSelectionTimeoutMS: 5000, // fail fast with a clear message when MongoDB isn't reachable
-  });
-  await Promise.all(Object.values(mongoose.models).map((m) => m.init())); // make sure indexes exist
-};
-
-module.exports = { mongoose, CI, User, Product, CartItem, Order, init };
+module.exports = { CI, User, Product, CartItem, Order };

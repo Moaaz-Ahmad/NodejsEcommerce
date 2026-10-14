@@ -1,7 +1,6 @@
 // Product data access.
 // Titles are unique (case-insensitive), so the title identifies a product as well as its id does.
-
-const { Product, CartItem, CI } = require('./db');
+const { Product, CI } = require('./schemas');
 
 // MongoDB error code for a unique-index violation
 const isDuplicate = (err) => err.code === 11000;
@@ -28,8 +27,7 @@ exports.upsert = async ({ title, price, imageUrl }) => {
   }
 };
 
-// returns 'ok' | 'missing' | 'duplicate' (another product already uses that title)
-// Update a product, returning missing, duplicate (title used by another product) or ok
+// Update a product, returning 'missing', 'duplicate' (another product already uses that title) or 'ok'
 exports.update = async (id, { title, price, imageUrl }) => {
   const product = await Product.findById(id);
   if (!product) return 'missing';
@@ -43,8 +41,5 @@ exports.update = async (id, { title, price, imageUrl }) => {
   }
 };
 
-// no foreign keys in MongoDB, so the product is removed from every cart explicitly
-exports.remove = async (id) => {
-  await Product.deleteOne({ _id: id });
-  await CartItem.deleteMany({ productId: id });
-};
+// Delete a product. Removing it from carts is a rule across collections: see services/products.js
+exports.remove = (id) => Product.deleteOne({ _id: id });

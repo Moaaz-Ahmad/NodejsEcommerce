@@ -3,6 +3,7 @@
 
 const { Router } = require('express');
 const auth = require('../controllers/auth');
+const account = require('../controllers/account');
 const shop = require('../controllers/shop');
 const admin = require('../controllers/admin');
 const { requireLogin, requireAdmin } = require('../middleware/auth');
@@ -29,9 +30,9 @@ router.use('/admin', adminRouter);
 
 // everything below needs a logged-in user (anonymous visitors, even to unknown URLs, are sent to /login)
 router.use(requireLogin);
-router.get('/profile', auth.getProfile);
-router.get('/change-password', auth.getChangePassword);
-router.post('/change-password', auth.postChangePassword);
+router.get('/profile', account.getProfile);
+router.get('/change-password', account.getChangePassword);
+router.post('/change-password', account.postChangePassword);
 router.get('/', shop.getShop);
 router.get('/products/:id', shop.getProduct);
 router.get('/cart', shop.getCart);

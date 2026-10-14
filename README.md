@@ -52,19 +52,33 @@ Never commit `.env`; it is listed in `.gitignore`.
 ## Project structure
 
 ```
-app.js                 Express setup: middleware, sessions, routes, error pages, startup
+server.js              Entry point (npm start): checks settings, connects to MongoDB, seeds the admin, listens
+app.js                 Builds the Express app: views, static files, sessions, routes, error pages
+config.js              The only place that reads environment variables / .env
 routes/index.js        All URL routes, grouped as public, admin-only and logged-in
-controllers/           Request handlers: auth.js, shop.js, admin.js
-models/                Data access and schemas: db.js (Mongoose models), user.js,
-                       product.js, cart.js, order.js
-middleware/auth.js     requireLogin and requireAdmin guards
+controllers/           Request handlers; each reads the request and picks the response
+                         auth.js (login, logout, register), account.js (profile, change password),
+                         shop.js (products, cart, checkout), admin.js (product management)
+services/              Business rules that span models
+                         auth.js (log in, register, change password, who is admin),
+                         cart.js (cart view, checkout), products.js (delete with cart cleanup)
+models/                Data access only
+                         schemas.js (Mongoose schemas), user.js, product.js, cart.js, order.js
+lib/                   Small single-purpose helpers
+                         validators.js (form checks), credentials.js (password and username hashing),
+                         session.js (sign in / out), database.js (connect)
+middleware/            auth.js (route guards), locals.js (data for every view), errors.js (404 and 500)
 views/                 EJS templates; partials/ holds the shared header, footer and
                        reusable image and cart-item blocks
 Public/css/main.css    The single stylesheet (Material Design 3 inspired)
+test/                  Unit tests (npm test)
 ```
 
-Request flow: a route picks a controller; the controller calls the models for data and
-renders a view. Models know nothing about HTTP, and views contain no database calls.
+Request flow: a route picks a controller. The controller checks input with `lib/validators`,
+asks a service (or a model, for a plain read) for the result, and renders a view or redirects.
+Each layer has one job and only calls downwards: controllers use services and models, services use
+models and helpers, models use only the schemas. Models and services know nothing about HTTP, and
+views contain no database calls.
 
 ## Routes
 
@@ -122,11 +136,12 @@ For production, set `SESSION_SECRET`, `USERNAME_PEPPER`, `ADMIN_PASSWORD` and
 ## Development
 
 ```bash
-npm start    # runs app.js on port 3000 (or PORT)
+npm start    # runs server.js on port 3000 (or PORT)
+npm test     # unit tests for the validators and the password/username hashing (no database needed)
 ```
 
-There is no automated test suite yet. Check changes by running the app and exercising
-the flows above (log in as admin and as a regular user, add a product, add it to a cart,
+The unit tests cover the pure modules only. For everything else, check changes by running the app and
+exercising the flows above (log in as admin and as a regular user, add a product, add it to a cart,
 check out, and try an admin page as a regular user).
 
 ## Contributing

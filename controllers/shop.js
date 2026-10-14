@@ -1,19 +1,8 @@
 // Shop handlers: product pages, cart and checkout. All of them need a signed-in user (see routes/index.js).
-
+// Cart and checkout rules live in services/cart.js.
 const Product = require('../models/product');
 const Cart = require('../models/cart');
-const Order = require('../models/order');
-
-// cart entries joined with current products; entries whose product was deleted are dropped
-// Build the cart view: each line with its current product details, plus the total. Lines for deleted products are left out
-async function cartLines(userId) {
-  const [items, products] = await Promise.all([Cart.get(userId), Product.all()]);
-  const lines = items
-    .map((i) => ({ product: products.find((p) => p.id === i.productId), qty: i.qty }))
-    .filter((l) => l.product);
-  const total = lines.reduce((sum, l) => sum + l.product.price * l.qty, 0);
-  return { lines, total };
-}
+const cartService = require('../services/cart');
 
 // Shop page: every product
 exports.getShop = async (req, res) => {
@@ -29,7 +18,7 @@ exports.getProduct = async (req, res) => {
 
 // Cart page
 exports.getCart = async (req, res) => {
-  res.render('shop/cart', { title: 'Cart', ...(await cartLines(req.session.user.id)) });
+  res.render('shop/cart', { title: 'Cart', ...(await cartService.viewCart(req.session.user.id)) });
 };
 
 // form fields are coerced to strings: a repeated field (?productId=a&productId=b) arrives as an array
@@ -50,16 +39,13 @@ exports.postCartDelete = async (req, res) => {
 
 // Review page before placing the order. An empty cart goes back to the cart page
 exports.getCheckout = async (req, res) => {
-  const cart = await cartLines(req.session.user.id);
+  const cart = await cartService.viewCart(req.session.user.id);
   if (!cart.lines.length) return res.redirect('/cart');
   res.render('shop/checkout', { title: 'Checkout', ...cart });
 };
 
-// Turn the cart into an order. Prices and titles are copied into the order, then the cart is emptied
+// Turn the cart into an order, then show it on the profile page. An empty cart goes back to the cart page
 exports.postCheckout = async (req, res) => {
-  const { id } = req.session.user;
-  const { lines } = await cartLines(id);
-  if (!lines.length) return res.redirect('/cart');
-  await Order.place(id, lines.map((l) => ({ title: l.product.title, price: l.product.price, qty: l.qty })));
-  res.redirect('/profile');
+  const placed = await cartService.checkout(req.session.user.id);
+  res.redirect(placed ? '/profile' : '/cart');
 };

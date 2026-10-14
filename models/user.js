@@ -1,69 +1,22 @@
-// User accounts and authentication.
-// Passwords are stored as scrypt hashes with a random salt per user.
-// Usernames are stored as an HMAC (keyed with USERNAME_PEPPER) so only the hash is in the database.
+// User data access: reads and writes user documents. Hashing, roles and account rules are in services/auth.js.
+const { User } = require('./schemas');
 
-const crypto = require('crypto');
-const { promisify } = require('util');
-const { User } = require('./db');
+// The user document with this username hash, or null
+exports.findByHash = (usernameHash) => User.findOne({ usernameHash });
 
-// Secret key for the username HMAC. Without it no account can be looked up, so refuse to start
-const PEPPER = process.env.USERNAME_PEPPER;
-if (!PEPPER) throw new Error('USERNAME_PEPPER is not set (see .env.example)');
-
-// scrypt is deliberately slow and memory-hungry, which makes guessing passwords expensive
-const scrypt = promisify(crypto.scrypt);
-const hash = async (password, salt) => (await scrypt(String(password), salt, 64)).toString('hex');
-// A fresh random salt for each password, so equal passwords get different hashes
-const newSalt = () => crypto.randomBytes(16).toString('hex');
-// keyed hash of the normalized username: the lookup key, so login is case-insensitive
-const usernameHash = (username) =>
-  crypto.createHmac('sha256', PEPPER).update(String(username || '').trim().toLowerCase()).digest('hex');
-
-// No role column: the admin is the one account whose username hash matches ADMIN_USERNAME.
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
-const ADMIN_HASH = usernameHash(ADMIN_USERNAME);
-const roleOf = (user) => (user.usernameHash === ADMIN_HASH ? 'admin' : 'user');
-
-// Used when a username does not exist, so a failed login takes as long as a real one
-const DUMMY_SALT = newSalt();
-
-// True when the name is the admin account name. Nobody can register under it
-exports.isReserved = (username) => usernameHash(username) === ADMIN_HASH;
-
-// returns the session user { id, username, role } or null.
-// username is only the name typed at login (the database doesn't store it), kept for display.
-// Check a username and password. Returns the session user, or null if they do not match
-exports.authenticate = async (username, password) => {
-  const user = await User.findOne({ usernameHash: usernameHash(username) });
-  // hash even when the user doesn't exist, so response time doesn't reveal which usernames are real
-  const attempt = Buffer.from(await hash(password, user ? user.salt : DUMMY_SALT), 'hex');
-  if (!user || !crypto.timingSafeEqual(attempt, Buffer.from(user.passwordHash, 'hex'))) return null;
-  return { id: user._id, username: String(username).trim(), role: roleOf(user) };
-};
-
-// returns the session user, or null when the username is already taken (case-insensitive)
-// Create an account with a hashed password. Returns the session user, or null if the username is taken
-exports.create = async (username, password) => {
-  const salt = newSalt();
+// Save a new user. Returns the document, or null when the username hash already exists (the unique index decides,
+// so two simultaneous sign-ups for one name cannot both succeed)
+exports.create = async ({ usernameHash, salt, passwordHash }) => {
   try {
-    const user = await User.create({ usernameHash: usernameHash(username), salt, passwordHash: await hash(password, salt) });
-    return { id: user._id, username: String(username).trim(), role: roleOf(user) };
+    return await User.create({ usernameHash, salt, passwordHash });
   } catch (err) {
-    if (err.code === 11000) return null; // unique index on usernameHash decides, so races are safe
+    if (err.code === 11000) return null;
     throw err;
   }
 };
 
-// new random salt on every change; caller must have verified the current password
-// Replace an account password (new salt and hash)
-exports.setPassword = async (id, password) => {
-  const salt = newSalt();
-  await User.updateOne({ _id: id }, { salt, passwordHash: await hash(password, salt) });
-};
+// Replace a user's stored salt and password hash
+exports.updateCredentials = (id, { salt, passwordHash }) => User.updateOne({ _id: id }, { salt, passwordHash });
 
-// first run only: creates the admin account (everyone else registers). Set ADMIN_PASSWORD to override the default.
-// Create the admin account on first run only, when the users collection is empty
-exports.seed = async () => {
-  if (await User.estimatedDocumentCount()) return;
-  await exports.create(ADMIN_USERNAME, process.env.ADMIN_PASSWORD || 'admin123');
-};
+// How many users exist
+exports.count = () => User.estimatedDocumentCount();

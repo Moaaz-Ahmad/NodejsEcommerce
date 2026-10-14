@@ -46,9 +46,19 @@ You need a running MongoDB instance (local, or a hosted cluster such as MongoDB 
 
 Follow the layout already in the repository. The full description is in the README.
 
-- **Models** (`models/`) talk to the database and know nothing about HTTP.
-- **Controllers** (`controllers/`) handle requests: read input, call models, render a view or redirect.
+Every file should have one reason to change (the single responsibility principle), and layers only call downwards:
+
 - **Routes** (`routes/index.js`) only map URLs to controller functions and guards.
+- **Controllers** (`controllers/`) handle HTTP: read the request, get the decision from a validator or service,
+  then render a view or redirect. No hashing, no queries, no business rules.
+- **Services** (`services/`) hold business rules that span models (log in, checkout, delete a product and clear
+  it from carts). They know nothing about HTTP.
+- **Models** (`models/`) read and write the database and nothing else. They don't call each other. Schemas are in
+  `models/schemas.js`.
+- **Helpers** (`lib/`) do one small job each: `validators.js` (form checks), `credentials.js` (hashing),
+  `session.js`, `database.js`.
+- **Configuration** is read only in `config.js`. Import settings from there; don't use `process.env` elsewhere.
+- **Middleware** (`middleware/`) is code that runs on requests before or after a route.
 - **Views** (`views/`) render HTML. They contain no database calls. Shared pieces go in `views/partials/`.
 - **Styles** live in `Public/css/main.css`. Use the `--md-sys-*` colour variables rather than hard-coded colours.
 
@@ -63,7 +73,10 @@ Other conventions:
 
 ## Testing your change
 
-The project has no automated test suite yet. Before opening a pull request, run the app and
+Run `npm test` first: it covers the validators and the password and username hashing, and needs no database.
+If you add or change logic in `lib/validators.js` or `lib/credentials.js`, add or update a test in `test/`.
+
+The rest has no automated tests yet. Before opening a pull request, run the app and
 check the flows that your change touches. At minimum:
 
 - Log in as the admin and as a regular user; log out.
@@ -79,7 +92,7 @@ Mention in the pull request which checks you ran.
 
 1. Fork the repository and create a branch from `main`.
 2. Make your change, following the conventions above.
-3. Make sure `node --check` passes for the JavaScript files you touched, and that the app starts.
+3. Make sure `npm test` passes and that the app starts.
 4. Open a pull request that explains **what** changed and **why**, and lists the checks you ran.
 5. Respond to review comments. Push follow-up commits to the same branch.
 
