@@ -7,12 +7,13 @@ try {
   console.error(err.message); // a required setting is missing
   process.exit(1);
 }
-const app = require('./app');
+const createApp = require('./app');
+const SessionStore = require('./models/sessionStore');
 const { connect } = require('./lib/database');
 const { seedAdmin } = require('./services/auth');
 
 connect().then(seedAdmin).then(
-  () => app.listen(config.port, () => console.log(`http://localhost:${config.port}`)),
+  () => createApp(new SessionStore()).listen(config.port, () => console.log(`http://localhost:${config.port}`)),
   (err) => {
     console.error(`Cannot start: database error (${err.name}). Check MONGODB_URI in .env and that MongoDB is running.`);
     process.exit(1);

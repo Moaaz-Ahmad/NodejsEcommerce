@@ -12,6 +12,9 @@ and see their order history. Admins add, edit and delete products.
 - **Accounts:** public registration, login, logout and password change. Passwords are
   salted and hashed with scrypt; usernames are stored as an HMAC so the database never
   holds them in plain text for lookup.
+- **Persistent login:** the login form has a "Keep me signed in" box (ticked by default). Ticked, the
+  login lasts 30 days from your last visit and survives closing the browser and restarting the server.
+  Unticked, it ends when the browser closes. Sessions are stored in MongoDB.
 - **Admin:** the account named by `ADMIN_USERNAME` can add, edit and delete products.
   Product titles are unique (case-insensitive), so adding an existing title updates that
   product instead of creating a duplicate.
@@ -33,7 +36,8 @@ npm start
 
 Open http://localhost:3000. On first start the app creates the admin account
 (username `admin` unless you set `ADMIN_USERNAME`). Anyone else can register from the
-Register page.
+Register page. Logins are remembered for 30 days if you leave "Keep me signed in" ticked,
+and they survive restarting the server.
 
 ## Configuration
 
@@ -46,14 +50,17 @@ Never commit `.env`; it is listed in `.gitignore`.
 | `USERNAME_PEPPER` | yes | Secret key for hashing usernames. Generate one with `node -p "require('crypto').randomBytes(32).toString('hex')"`. **Changing it after accounts exist locks those users out.** |
 | `ADMIN_USERNAME` | no | Name of the admin account. Default `admin`. This name cannot be registered by anyone else. |
 | `ADMIN_PASSWORD` | no | Password for the admin account, used only when it is first created. Default `admin123`. Set a real one before deploying. |
-| `SESSION_SECRET` | no | Secret for signing session cookies. If unset, a random one is generated at each start, which logs everyone out on restart. |
+| `SESSION_SECRET` | no | Secret for signing session cookies. If unset, it is derived from `USERNAME_PEPPER`, so it is the same on every start and logins survive restarts. Set it to use a separate secret. Changing it logs everyone out. |
+| `SESSION_DAYS` | no | How long "Keep me signed in" lasts, counted from the last visit. Default `30`. |
+| `COOKIE_SECURE` | no | Set `true` once the site is served over HTTPS, so the session cookie is only ever sent over HTTPS. Default `false` (plain HTTP works for local development). |
+| `TRUST_PROXY` | no | Set `true` when a reverse proxy ends HTTPS in front of the app, so secure cookies work. Default `false`. |
 | `PORT` | no | HTTP port. Default `3000`. |
 
 ## Project structure
 
 ```
 server.js              Entry point (npm start): checks settings, connects to MongoDB, seeds the admin, listens
-app.js                 Builds the Express app: views, static files, sessions, routes, error pages
+app.js                 Builds the Express app around a session store: views, static files, sessions, routes, error pages
 config.js              The only place that reads environment variables / .env
 routes/index.js        All URL routes, grouped as public, admin-only and logged-in
 controllers/           Request handlers; each reads the request and picks the response
@@ -63,11 +70,13 @@ services/              Business rules that span models
                          auth.js (log in, register, change password, who is admin),
                          cart.js (cart view, checkout), products.js (delete with cart cleanup)
 models/                Data access only
-                         schemas.js (Mongoose schemas), user.js, product.js, cart.js, order.js
+                         schemas.js (Mongoose schemas), user.js, product.js, cart.js, order.js,
+                         sessionStore.js (login sessions kept in MongoDB)
 lib/                   Small single-purpose helpers
                          validators.js (form checks), credentials.js (password and username hashing),
                          session.js (sign in / out), database.js (connect)
-middleware/            auth.js (route guards), locals.js (data for every view), errors.js (404 and 500)
+middleware/            auth.js (route guards), session.js (session cookie setup), locals.js (data for every
+                       view), errors.js (404 and 500)
 views/                 EJS templates; partials/ holds the shared header, footer and
                        reusable image and cart-item blocks
 Public/css/main.css    The single stylesheet (Material Design 3 inspired)
@@ -107,13 +116,13 @@ Anonymous visitors are redirected to `/login`. Signed-in users who open an admin
 - **users:** `_id`, `usernameHash`, `salt`, `passwordHash`, `createdAt`. No username or role is stored in plain text.
 - **carts:** one document per user and product, with a quantity.
 - **orders:** user, total, time, and an embedded list of items (title, price, quantity).
+- **sessions:** one document per signed-in browser session: the session id, the user it belongs to, the stored
+  session data and an expiry time. MongoDB deletes expired sessions automatically. Sessions hold no passwords.
 
 ## Known limitations
 
 These are deliberate simplifications, not bugs to hide:
 
-- **Sessions** are kept in memory, so logins reset when the server restarts and do not
-  work across several server processes.
 - **No rate limiting** on login or registration.
 - **Checkout** saves the order and then clears the cart in two steps. If clearing the cart
   fails, a retry would create a second order. MongoDB only supports multi-document
@@ -125,13 +134,19 @@ These are deliberate simplifications, not bugs to hide:
 ## Security notes
 
 - Passwords use scrypt with a random per-user salt; comparisons are constant-time.
-- Session cookies are `httpOnly` and `SameSite=Lax`.
+- Session cookies are signed, `httpOnly` and `SameSite=Lax`, and `Secure` when `COOKIE_SECURE=true`. A new
+  session id is issued at every sign-in, which prevents session fixation.
+- Sessions are stored server-side; the cookie holds only a signed random id. Logging out deletes the stored
+  session, and expired sessions are rejected and removed.
+- Changing a password signs out every other device that user was logged in on.
+- A "Keep me signed in" cookie is a long-lived credential: anyone who copies it can act as that user until it
+  expires or the user logs out or changes their password. Serve the site over HTTPS and set `COOKIE_SECURE=true`.
 - User-provided text is HTML-escaped by EJS.
 - Image URLs must start with `http://` or `https://`.
 - Form input is checked on the server, not only in the browser.
 
-For production, set `SESSION_SECRET`, `USERNAME_PEPPER`, `ADMIN_PASSWORD` and
-`MONGODB_URI`, serve the app over HTTPS, and address the limitations above.
+For production, set `USERNAME_PEPPER`, `ADMIN_PASSWORD` and `MONGODB_URI` (and optionally a separate
+`SESSION_SECRET`), serve the app over HTTPS with `COOKIE_SECURE=true`, and address the limitations above.
 
 ## Development
 

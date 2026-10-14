@@ -2,7 +2,7 @@
 const Order = require('../models/order');
 const auth = require('../services/auth');
 const { validatePasswordChange } = require('../lib/validators');
-const { signIn } = require('../lib/session');
+const { signIn, isRemembered, signOutOtherDevices } = require('../lib/session');
 
 // Account page: the signed-in user's orders, newest first
 exports.getProfile = async (req, res) => {
@@ -15,7 +15,8 @@ exports.getChangePassword = (req, res) => {
   res.render('auth/change-password', { title: 'Change Password', error: null });
 };
 
-// Change the password. Requires the current password, a new one of 8 to 128 characters, and a matching confirmation. Rotates the session afterwards
+// Change the password. Requires the current password, a new one of 8 to 128 characters, and a matching confirmation.
+// Every other saved login of this user is ended, and this browser gets a fresh session that keeps its "keep me signed in" choice
 exports.postChangePassword = async (req, res) => {
   const fail = (status, error) => res.status(status).render('auth/change-password', { title: 'Change Password', error });
   const { value, error } = validatePasswordChange(req.body);
@@ -24,6 +25,7 @@ exports.postChangePassword = async (req, res) => {
   const user = req.session.user;
   if (!(await auth.changePassword(user, value.current, value.password))) return fail(403, 'Current password is incorrect.');
 
-  await signIn(req, user, 'Password changed.'); // fresh session id after a credential change
+  await signOutOtherDevices(req);
+  await signIn(req, user, { flash: 'Password changed.', remember: isRemembered(req) });
   res.redirect('/profile');
 };

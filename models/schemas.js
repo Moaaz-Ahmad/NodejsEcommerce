@@ -53,9 +53,21 @@ const orderSchema = new mongoose.Schema({
 }, { versionKey: false });
 
 // Compile the schemas into models; each maps to one collection
+// One document per live login session. _id is the session id from the cookie; data is the session itself as JSON.
+// userId is kept as its own field so all of one user's sessions can be found (to sign them out). MongoDB deletes
+// a session once its expires time passes (the TTL index), which is what ends a "keep me signed in" login.
+const sessionSchema = new mongoose.Schema({
+  _id: { type: String },
+  userId: { type: String, default: null, index: true },
+  data: { type: String, required: true },
+  expires: { type: Date, required: true },
+}, { versionKey: false });
+sessionSchema.index({ expires: 1 }, { expireAfterSeconds: 0 });
+
 const Product = mongoose.model('Product', productSchema);
 const User = mongoose.model('User', userSchema);
 const CartItem = mongoose.model('CartItem', cartItemSchema);
 const Order = mongoose.model('Order', orderSchema);
+const Session = mongoose.model('Session', sessionSchema);
 
-module.exports = { CI, User, Product, CartItem, Order };
+module.exports = { CI, User, Product, CartItem, Order, Session };
