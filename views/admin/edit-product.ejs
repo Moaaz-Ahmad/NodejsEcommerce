@@ -1,7 +1,8 @@
 <%# Add or edit product form (the same form, chosen by whether a product id is set). %>
 <%- include('../partials/head') %>
   <% if (error) { %><p class="md-alert" role="alert"><%= error %></p><% } %>
-  <form class="md-form" method="POST" action="<%= product.id ? '/admin/edit-product/' + product.id : '/admin/add-product' %>">
+  <form class="md-form" method="POST" action="<%= product.id ? '/admin/edit-product/' + product.id : '/admin/add-product' %>
+    <%- include('../partials/csrf') %>">
     <h1 class="md-title"><%= product.id ? 'Edit Product' : 'Add Product' %></h1>
     <div class="md-field">
       <label for="title">Title</label>

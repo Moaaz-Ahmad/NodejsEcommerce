@@ -1,5 +1,5 @@
-// Entry point (npm start): check the settings, connect to MongoDB, create the admin account if there are no
-// users yet, then start listening. Building the app itself is app.js.
+// Entry point (npm start): check the settings, connect to MongoDB, make sure the admin account exists, then
+// start listening. Building the app itself is app.js.
 let config;
 try {
   config = require('./config');
@@ -16,7 +16,7 @@ const start = async () => {
   await connect();
   await seedAdmin();
   const sessionStore = new SessionStore();
-  await sessionStore.purgeReadable(); // remove any sessions an earlier version saved as readable text
+  await sessionStore.purgeOldFormats(); // sign out and delete sessions saved by earlier versions
   createApp(sessionStore).listen(config.port, () => console.log(`http://localhost:${config.port}`));
 };
 

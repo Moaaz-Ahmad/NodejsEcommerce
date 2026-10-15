@@ -26,8 +26,9 @@
         <a class="md-icon-button" href="/profile" title="Profile" aria-label="Profile">
           <span class="material-symbols-outlined">person</span>
         </a>
-        <span class="md-header__user"><%= user.username %> (<%= user.role %>)</span>
+        <span class="md-header__user"><%= user.email %> (<%= user.role %>)</span>
         <form class="md-inline-form" method="POST" action="/logout">
+          <%- include('csrf') %>
           <button class="md-icon-button" title="Logout" aria-label="Logout">
             <span class="material-symbols-outlined">logout</span>
           </button>

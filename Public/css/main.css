@@ -397,7 +397,7 @@ h2.md-subtitle { font-size: 1.25rem; font-weight: 500; margin: 24px 0 12px; }
 .md-inline-form .md-icon-button { font: inherit; }
 
 /* Header extras */
-.md-header__user { font-size: 0.875rem; color: var(--md-sys-color-on-surface-variant); }
+.md-header__user { font-size: 0.875rem; color: var(--md-sys-color-on-surface-variant); max-width: 16rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 600px) {
   .md-header { padding: 0 8px; }
   .md-header__actions { gap: 4px; }

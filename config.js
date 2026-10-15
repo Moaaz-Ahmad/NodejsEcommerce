@@ -7,30 +7,28 @@ const crypto = require('crypto');
 const DAY_MS = 24 * 60 * 60 * 1000;
 const days = Number(process.env.SESSION_DAYS);
 
-// a setting the app cannot run without
-const required = (name) => {
-  if (!process.env[name]) throw new Error(`${name} is not set (see .env.example)`);
-  return process.env[name];
-};
-
-const usernamePepper = required('USERNAME_PEPPER');
+// The secret that signs the session cookie and (through a key derived from it) encrypts the sessions kept in the
+// database. It must be the same on every start: a random one would make every saved cookie and stored session
+// unusable after a restart and end everyone's login. USERNAME_PEPPER is what older versions called this secret;
+// it is still accepted so existing setups keep working.
+const sessionSecret = process.env.SESSION_SECRET
+  || (process.env.USERNAME_PEPPER
+    && crypto.createHmac('sha256', process.env.USERNAME_PEPPER).update('simplecom session secret').digest('hex'));
+if (!sessionSecret) throw new Error('SESSION_SECRET is not set (see .env.example)');
 
 module.exports = {
   port: process.env.PORT || 3000,
   mongoUri: process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/node-complete',
-  // Signs the session cookie, and (through a key derived from it) encrypts the sessions stored in the database.
-  // It must be the same on every start: a random one would make every saved cookie and stored session unusable
-  // after a restart and end everyone's login. Unless SESSION_SECRET is set, it is derived from the pepper.
-  sessionSecret: process.env.SESSION_SECRET
-    || crypto.createHmac('sha256', usernamePepper).update('simplecom session secret').digest('hex'),
+  sessionSecret,
   // how long "keep me signed in" lasts, counted from the last visit (SESSION_DAYS, default 30)
   sessionMs: (days > 0 ? days : 30) * DAY_MS,
   // send the session cookie over HTTPS only. Set COOKIE_SECURE=true once the site is served over HTTPS
   secureCookies: process.env.COOKIE_SECURE === 'true',
   // trust one reverse proxy's X-Forwarded-* headers (TRUST_PROXY=true), needed for secure cookies behind a TLS-terminating proxy
   trustProxy: process.env.TRUST_PROXY === 'true',
-  // secret key for the username HMAC. Without it no account can be looked up, so refuse to start
-  usernamePepper,
-  adminUsername: process.env.ADMIN_USERNAME || 'admin',
+  // limits on login, registration and similar requests are on unless RATE_LIMIT=off (for load tests only)
+  rateLimitEnabled: process.env.RATE_LIMIT !== 'off',
+  // the email address of the admin account (compared in lower case)
+  adminEmail: (process.env.ADMIN_EMAIL || 'admin@example.com').trim().toLowerCase(),
   adminPassword: process.env.ADMIN_PASSWORD || 'admin123',
 };

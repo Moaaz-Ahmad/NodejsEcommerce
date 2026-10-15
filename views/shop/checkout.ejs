@@ -12,6 +12,7 @@
       <div class="cart-summary__row"><span>Items</span><span><%= lines.reduce((n, l) => n + l.qty, 0) %></span></div>
       <div class="cart-summary__row cart-summary__total"><span>Total</span><span>$<%= total.toFixed(2) %></span></div>
       <form method="POST" action="/checkout">
+        <%- include('../partials/csrf') %>
         <button class="md-button-filled">Place Order</button>
       </form>
       <a class="md-button-outlined" href="/cart">Back to cart</a>

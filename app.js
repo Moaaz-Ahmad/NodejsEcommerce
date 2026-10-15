@@ -5,6 +5,7 @@ const path = require('path');
 const config = require('./config');
 const sessions = require('./middleware/session');
 const locals = require('./middleware/locals');
+const csrf = require('./middleware/csrf');
 const { notFound, errorHandler } = require('./middleware/errors');
 
 // Build the app around a session store (see models/sessionStore.js). A function rather than a ready-made app,
@@ -26,6 +27,7 @@ module.exports = (sessionStore) => {
 
   app.use(sessions(sessionStore));
   app.use(locals);
+  app.use(csrf); // refuses any POST that does not carry this session's token
 
   app.use(require('./routes'));
   app.use(notFound);

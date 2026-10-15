@@ -1,0 +1,2 @@
+<%# The CSRF token for a form. Every <form method="POST"> must include this, or the server refuses the request. %>
+<input type="hidden" name="_csrf" value="<%= csrfToken() %>">

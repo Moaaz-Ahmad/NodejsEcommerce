@@ -11,6 +11,7 @@
         <dt>Image URL</dt><dd><%= product.imageUrl || '—' %></dd>
       </dl>
       <form class="md-card__actions" method="POST" action="/cart">
+        <%- include('../partials/csrf') %>
         <input type="hidden" name="productId" value="<%= product.id %>">
         <button class="md-button-filled">Add to Cart</button>
       </form>

@@ -12,6 +12,7 @@
             <div class="md-card__actions">
               <a class="md-button-outlined" href="/products/<%= p.id %>">Details</a>
               <form class="md-inline-form" method="POST" action="/cart">
+                <%- include('../partials/csrf') %>
                 <input type="hidden" name="productId" value="<%= p.id %>">
                 <button class="md-button-filled">Add to Cart</button>
               </form>

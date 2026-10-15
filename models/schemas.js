@@ -22,18 +22,21 @@ const productSchema = new mongoose.Schema({
 }, { timestamps: { createdAt: true, updatedAt: false } });
 productSchema.index({ title: 1 }, { unique: true, collation: CI });
 
-// No username or role is stored: usernameHash = HMAC(secret pepper, lowercased username) is the login lookup key,
-// and the admin is the account whose hash matches ADMIN_USERNAME (see models/user.js).
+// One document per account, identified by its email address (stored lower-case, so the match ignores case).
+// No role is stored: the admin is the account whose email is ADMIN_EMAIL (see services/auth.js).
 // passwordHash = scrypt(password, salt) with a random salt per user; the password itself is never stored.
-// One document per account
 const userSchema = new mongoose.Schema({
   _id: id,
-  usernameHash: { type: String, required: true, unique: true },
+  email: { type: String, required: true, trim: true, lowercase: true },
   salt: { type: String, required: true },
   passwordHash: { type: String, required: true },
 }, { timestamps: { createdAt: true, updatedAt: false } });
 
 // One document per (user, product) pair in a cart, with a quantity
+// unique, but only among documents that have an email: accounts made by older versions have none, and
+// without this filter two of them would count as duplicates of each other
+userSchema.index({ email: 1 }, { unique: true, partialFilterExpression: { email: { $type: 'string' } } });
+
 const cartItemSchema = new mongoose.Schema({
   userId: { type: String, required: true },
   productId: { type: String, required: true },
@@ -65,10 +68,21 @@ const sessionSchema = new mongoose.Schema({
 }, { versionKey: false });
 sessionSchema.index({ expires: 1 }, { expireAfterSeconds: 0 });
 
+// One document per rate-limit window. _id is "<limiter>:<who>", count is the requests so far in the window and
+// resetAt is when the window ends (MongoDB deletes expired ones). Kept in the database rather than in memory so the
+// limits hold across restarts and across several server processes.
+const rateLimitSchema = new mongoose.Schema({
+  _id: { type: String },
+  count: { type: Number, required: true },
+  resetAt: { type: Date, required: true },
+}, { versionKey: false });
+rateLimitSchema.index({ resetAt: 1 }, { expireAfterSeconds: 0 });
+
 const Product = mongoose.model('Product', productSchema);
 const User = mongoose.model('User', userSchema);
 const CartItem = mongoose.model('CartItem', cartItemSchema);
 const Order = mongoose.model('Order', orderSchema);
 const Session = mongoose.model('Session', sessionSchema);
+const RateLimit = mongoose.model('RateLimit', rateLimitSchema);
 
-module.exports = { CI, User, Product, CartItem, Order, Session };
+module.exports = { CI, User, Product, CartItem, Order, Session, RateLimit };

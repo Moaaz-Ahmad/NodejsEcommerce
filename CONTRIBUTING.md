@@ -7,7 +7,7 @@ propose changes, and keep the codebase consistent.
 
 - Be respectful and constructive in issues and reviews.
 - Keep changes small and focused: one problem or feature per pull request.
-- Never commit secrets. The `.env` file (database connection, `USERNAME_PEPPER`, passwords) is
+- Never commit secrets. The `.env` file (database connection, `SESSION_SECRET`, passwords) is
   listed in `.gitignore` and must stay out of the repository. Use `.env.example` to document new
   settings.
 
@@ -36,7 +36,7 @@ a fix is available.
 
 ```bash
 npm install
-cp .env.example .env     # set MONGODB_URI and USERNAME_PEPPER at least
+cp .env.example .env     # set MONGODB_URI and SESSION_SECRET at least
 npm start
 ```
 
@@ -56,7 +56,16 @@ Every file should have one reason to change (the single responsibility principle
 - **Models** (`models/`) read and write the database and nothing else. They don't call each other. Schemas are in
   `models/schemas.js`. `models/sessionStore.js` keeps login sessions in MongoDB for express-session.
 - **Helpers** (`lib/`) do one small job each: `validators.js` (form checks), `credentials.js` (hashing),
-  `seal.js` (encryption of stored data), `session.js`, `database.js`.
+  `seal.js` (encryption of stored data), `csrf.js` (CSRF tokens), `session.js`, `database.js`.
+- **Forms and CSRF:** every `<form method="POST">` must include the token with `<%- include('../partials/csrf') %>`
+  (from a file in `views/partials/`, `include('csrf')`), or the server refuses the submission. Changes to data must
+  only happen on POST, never on GET: GET requests are not checked for a token. `npm test` enforces this (see
+  `test/guards.test.js`): it fails when a POST form has no token, when a handler that answers GET writes anything,
+  when a route uses a method other than GET or POST, and when handlers are not named `get...` for GET and `post...`
+  for POST.
+- **Rate limits:** anything that checks a secret (a password) or creates records for anonymous visitors should be put
+  behind a limit in `routes/index.js` (`middleware/rateLimit.js`). The guard tests fail if the login, register and
+  password-change routes lose theirs.
 - **Configuration** is read only in `config.js`. Import settings from there; don't use `process.env` elsewhere.
 - **Middleware** (`middleware/`) is code that runs on requests before or after a route.
 - **Views** (`views/`) render HTML. They contain no database calls. Shared pieces go in `views/partials/`.
@@ -73,7 +82,8 @@ Other conventions:
 
 ## Testing your change
 
-Run `npm test` first: it covers the validators and the password and username hashing, and needs no database.
+Run `npm test` first: it covers the validators, hashing, encryption, CSRF tokens, the same-origin check and rate
+limiting, plus the guard tests over the source, and needs no database.
 If you add or change logic in `lib/validators.js` or `lib/credentials.js`, add or update a test in `test/`.
 
 The rest has no automated tests yet. Before opening a pull request, run the app and
@@ -85,6 +95,7 @@ check the flows that your change touches. At minimum:
 - Regular user: add to cart (adding the same product again raises its quantity), remove a line, check out, and view
   the order on the profile page.
 - Confirm that a regular user cannot open `/admin/...` pages (they should get a 403).
+- If you added or changed a form, submit it. A "Form expired" page means the form is missing its token.
 
 Mention in the pull request which checks you ran.
 

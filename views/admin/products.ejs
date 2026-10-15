@@ -13,7 +13,8 @@
           </div>
           <div class="cart-item__actions">
             <a class="md-button-outlined" href="/admin/edit-product/<%= p.id %>">Edit</a>
-            <form class="md-inline-form" method="POST" action="/admin/delete-product/<%= p.id %>"
+            <form class="md-inline-form" method="POST" action="/admin/delete-product/<%= p.id %>
+              <%- include('../partials/csrf') %>"
                   onsubmit="return confirm('Delete this product?')">
               <button class="md-button-danger">Delete</button>
             </form>

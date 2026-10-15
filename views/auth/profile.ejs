@@ -1,8 +1,8 @@
-<%# Profile page: account name and role, a link to change the password, and order history. %>
+<%# Profile page: the account email and role, a link to change the password, and order history. %>
 <%- include('../partials/head') %>
   <h1 class="md-title">Profile</h1>
   <div class="profile-card">
-    <strong><%= user.username %></strong>
+    <strong><%= user.email %></strong>
     <span><%= user.role %></span>
   </div>
   <p class="section-gap"><a class="md-button-outlined" href="/change-password">Change password</a></p>
