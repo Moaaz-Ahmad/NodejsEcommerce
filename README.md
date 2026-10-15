@@ -74,7 +74,7 @@ models/                Data access only
                          sessionStore.js (login sessions kept in MongoDB)
 lib/                   Small single-purpose helpers
                          validators.js (form checks), credentials.js (password and username hashing),
-                         session.js (sign in / out), database.js (connect)
+                         seal.js (encryption of stored sessions), session.js (sign in / out), database.js (connect)
 middleware/            auth.js (route guards), session.js (session cookie setup), locals.js (data for every
                        view), errors.js (404 and 500)
 views/                 EJS templates; partials/ holds the shared header, footer and
@@ -116,8 +116,10 @@ Anonymous visitors are redirected to `/login`. Signed-in users who open an admin
 - **users:** `_id`, `usernameHash`, `salt`, `passwordHash`, `createdAt`. No username or role is stored in plain text.
 - **carts:** one document per user and product, with a quantity.
 - **orders:** user, total, time, and an embedded list of items (title, price, quantity).
-- **sessions:** one document per signed-in browser session: the session id, the user it belongs to, the stored
-  session data and an expiry time. MongoDB deletes expired sessions automatically. Sessions hold no passwords.
+- **sessions:** one document per signed-in browser session: the session id, an opaque user id, an expiry time,
+  and the session data, which is **encrypted** (AES-256-GCM), so the database holds no readable name or role.
+  MongoDB deletes expired sessions automatically. Sessions hold no passwords. Sessions saved by older versions
+  in readable form are deleted when the server starts.
 
 ## Known limitations
 
@@ -138,6 +140,13 @@ These are deliberate simplifications, not bugs to hide:
   session id is issued at every sign-in, which prevents session fixation.
 - Sessions are stored server-side; the cookie holds only a signed random id. Logging out deletes the stored
   session, and expired sessions are rejected and removed.
+- Stored sessions are encrypted and authenticated (AES-256-GCM, with a key derived from the session secret and
+  the session id bound into each record). Someone who can only read the database sees no usernames or roles, and
+  someone who can write to it cannot change a role or copy one session's data into another: the altered
+  session simply fails to open and its owner is signed out. The session id, expiry time and an opaque user id
+  stay readable on purpose (they are needed for lookups, clean-up and signing a user out everywhere); the id is
+  useless without the secret that signs the cookie. Changing `SESSION_SECRET` (or `USERNAME_PEPPER`, if it is
+  the source of the secret) makes stored sessions unreadable, which signs everyone out.
 - Changing a password signs out every other device that user was logged in on.
 - A "Keep me signed in" cookie is a long-lived credential: anyone who copies it can act as that user until it
   expires or the user logs out or changes their password. Serve the site over HTTPS and set `COOKIE_SECURE=true`.

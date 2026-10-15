@@ -12,10 +12,15 @@ const SessionStore = require('./models/sessionStore');
 const { connect } = require('./lib/database');
 const { seedAdmin } = require('./services/auth');
 
-connect().then(seedAdmin).then(
-  () => createApp(new SessionStore()).listen(config.port, () => console.log(`http://localhost:${config.port}`)),
-  (err) => {
-    console.error(`Cannot start: database error (${err.name}). Check MONGODB_URI in .env and that MongoDB is running.`);
-    process.exit(1);
-  },
-);
+const start = async () => {
+  await connect();
+  await seedAdmin();
+  const sessionStore = new SessionStore();
+  await sessionStore.purgeReadable(); // remove any sessions an earlier version saved as readable text
+  createApp(sessionStore).listen(config.port, () => console.log(`http://localhost:${config.port}`));
+};
+
+start().catch((err) => {
+  console.error(`Cannot start: database error (${err.name}). Check MONGODB_URI in .env and that MongoDB is running.`);
+  process.exit(1);
+});

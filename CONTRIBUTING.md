@@ -56,7 +56,7 @@ Every file should have one reason to change (the single responsibility principle
 - **Models** (`models/`) read and write the database and nothing else. They don't call each other. Schemas are in
   `models/schemas.js`. `models/sessionStore.js` keeps login sessions in MongoDB for express-session.
 - **Helpers** (`lib/`) do one small job each: `validators.js` (form checks), `credentials.js` (hashing),
-  `session.js`, `database.js`.
+  `seal.js` (encryption of stored data), `session.js`, `database.js`.
 - **Configuration** is read only in `config.js`. Import settings from there; don't use `process.env` elsewhere.
 - **Middleware** (`middleware/`) is code that runs on requests before or after a route.
 - **Views** (`views/`) render HTML. They contain no database calls. Shared pieces go in `views/partials/`.

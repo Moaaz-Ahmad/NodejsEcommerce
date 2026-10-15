@@ -18,8 +18,9 @@ const usernamePepper = required('USERNAME_PEPPER');
 module.exports = {
   port: process.env.PORT || 3000,
   mongoUri: process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/node-complete',
-  // Signs the session cookie. It must be the same on every start: a random one would make every saved cookie
-  // invalid after a restart and end everyone's login. Unless SESSION_SECRET is set, it is derived from the pepper.
+  // Signs the session cookie, and (through a key derived from it) encrypts the sessions stored in the database.
+  // It must be the same on every start: a random one would make every saved cookie and stored session unusable
+  // after a restart and end everyone's login. Unless SESSION_SECRET is set, it is derived from the pepper.
   sessionSecret: process.env.SESSION_SECRET
     || crypto.createHmac('sha256', usernamePepper).update('simplecom session secret').digest('hex'),
   // how long "keep me signed in" lasts, counted from the last visit (SESSION_DAYS, default 30)
